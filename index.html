@@ -7,6 +7,7 @@
     <title>get2learn Video Curation Platform</title>
     <link rel="preconnect" href="https://i.ytimg.com">
     <link rel="stylesheet" href="styles.css">
+    <script src="api.js" defer></script>
     <script src="app.js" defer></script>
   </head>
   <body>
@@ -20,6 +21,11 @@
       </a>
 
       <nav class="top-actions" aria-label="Primary">
+        <span class="api-status" id="api-status" data-status="checking">API checking</span>
+        <button class="icon-button" id="open-ingest" type="button" title="Add a curated link" aria-label="Add a curated link">
+          <span class="button-icon" aria-hidden="true">in</span>
+          <span class="button-text">Add Link</span>
+        </button>
         <button class="icon-button" id="open-playlists" type="button" title="Open playlists" aria-label="Open playlists">
           <span class="button-icon" aria-hidden="true">+</span>
           <span class="button-text">Playlist</span>
@@ -41,6 +47,7 @@
           <div class="metric-strip" aria-label="Platform activity">
             <span><strong id="visible-count">0</strong> visible</span>
             <span><strong id="saved-count">0</strong> saved</span>
+            <span><strong id="completed-count">0</strong> done</span>
             <span><strong id="playlist-count">0</strong> playlists</span>
           </div>
         </div>
@@ -89,8 +96,26 @@
               <input id="fresh-only" type="checkbox">
               <span>New this year</span>
             </label>
+            <label>
+              <input id="unfinished-only" type="checkbox">
+              <span>Unfinished only</span>
+            </label>
           </div>
         </form>
+
+        <section class="progress-band" aria-labelledby="progress-title">
+          <div>
+            <p class="eyebrow">Learning pulse</p>
+            <h2 id="progress-title">Your momentum</h2>
+          </div>
+          <div class="progress-content">
+            <div class="progress-track" aria-label="Completed videos progress">
+              <span id="progress-bar"></span>
+            </div>
+            <p id="progress-summary">Mark videos complete to build your learning signal.</p>
+          </div>
+          <button class="ghost-button" id="resume-next" type="button">Resume next</button>
+        </section>
 
         <section class="recommendation-band" aria-labelledby="recommended-title">
           <div>
@@ -131,6 +156,92 @@
         <ol class="playlist-items" id="playlist-items"></ol>
       </aside>
     </main>
+
+    <dialog class="video-dialog" id="video-dialog" aria-labelledby="detail-title">
+      <form method="dialog" class="detail-card" id="detail-form">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow" id="detail-meta">Video details</p>
+            <h2 id="detail-title">Selected video</h2>
+          </div>
+          <button class="ghost-button" id="close-detail" type="button">Close</button>
+        </div>
+
+        <img class="detail-thumb" id="detail-thumb" alt="" width="960" height="540" loading="lazy" decoding="async">
+        <p class="detail-description" id="detail-description"></p>
+
+        <div class="detail-stats" aria-label="Video details">
+          <span id="detail-duration">0m</span>
+          <span id="detail-level">Level</span>
+          <span id="detail-topic">Topic</span>
+        </div>
+
+        <label>
+          <span>Private note</span>
+          <textarea id="detail-note" rows="4" maxlength="500" placeholder="Capture the takeaway, timestamp, or next action."></textarea>
+        </label>
+
+        <div class="detail-actions">
+          <a class="primary-link" id="detail-open" target="_blank" rel="noreferrer noopener">Open video</a>
+          <button class="ghost-button" id="detail-save" type="button">Save</button>
+          <button class="ghost-button" id="detail-complete" type="button">Mark complete</button>
+          <button class="ghost-button" id="detail-add" type="button">Add to playlist</button>
+          <button class="ghost-button" id="detail-report" type="button">Report link</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="ingest-dialog" id="ingest-dialog" aria-labelledby="ingest-title">
+      <form method="dialog" class="dialog-card" id="ingest-form">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">Curator mode</p>
+            <h2 id="ingest-title">Add a video link</h2>
+          </div>
+          <button class="ghost-button" id="close-ingest" type="button">Close</button>
+        </div>
+
+        <label>
+          <span>Title</span>
+          <input id="ingest-title-input" type="text" maxlength="80" placeholder="e.g. Practical TypeScript Patterns" required>
+        </label>
+        <label>
+          <span>URL</span>
+          <input id="ingest-url" type="url" placeholder="https://..." required>
+        </label>
+        <div class="ingest-grid">
+          <label>
+            <span>Topic</span>
+            <input id="ingest-topic" type="text" maxlength="30" placeholder="Frontend" required>
+          </label>
+          <label>
+            <span>Level</span>
+            <select id="ingest-level" required>
+              <option>Beginner</option>
+              <option>Intermediate</option>
+              <option>Advanced</option>
+            </select>
+          </label>
+          <label>
+            <span>Minutes</span>
+            <input id="ingest-duration" type="number" min="1" max="240" value="20" required>
+          </label>
+          <label>
+            <span>Year</span>
+            <input id="ingest-year" type="number" min="2020" max="2030" value="2026" required>
+          </label>
+        </div>
+        <label>
+          <span>Description</span>
+          <textarea id="ingest-description" rows="3" maxlength="180" placeholder="What makes this worth watching?" required></textarea>
+        </label>
+        <label>
+          <span>Tags</span>
+          <input id="ingest-tags" type="text" maxlength="80" placeholder="React, Performance, UX">
+        </label>
+        <button class="primary-button" value="submit" type="submit">Add to directory</button>
+      </form>
+    </dialog>
 
     <dialog class="feedback-dialog" id="feedback-dialog" aria-labelledby="feedback-title">
       <form method="dialog" class="dialog-card" id="feedback-form">
@@ -175,6 +286,8 @@
           <div class="card-actions">
             <button class="save-button" type="button"></button>
             <button class="playlist-button" type="button">Add</button>
+            <button class="details-button" type="button">Details</button>
+            <button class="complete-button" type="button">Done</button>
             <button class="reaction-button" data-reaction="up" type="button" title="Mark useful">Useful</button>
             <button class="reaction-button" data-reaction="down" type="button" title="Mark less useful">Skip</button>
           </div>

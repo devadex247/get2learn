@@ -1,5 +1,9 @@
 # Dependencies
 node_modules/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
 
 # Framework/build output
 .next/
@@ -29,3 +33,5 @@ Thumbs.db
 # Local tooling
 .turbo/
 .vercel/
+.pytest_cache/
+.ruff_cache/

@@ -174,7 +174,10 @@ const storageKeys = {
   reactions: "g2l.reactions",
   playlists: "g2l.playlists",
   activePlaylist: "g2l.activePlaylist",
-  feedback: "g2l.feedback"
+  feedback: "g2l.feedback",
+  completed: "g2l.completed",
+  notes: "g2l.notes",
+  customVideos: "g2l.customVideos"
 };
 
 const state = {
@@ -185,12 +188,19 @@ const state = {
   sort: "recommended",
   savedOnly: false,
   freshOnly: false,
+  unfinishedOnly: false,
+  apiMode: "checking",
+  remoteVideos: [],
   saved: readSet(storageKeys.saved),
+  completed: readSet(storageKeys.completed),
+  notes: readJson(storageKeys.notes, {}),
+  customVideos: readJson(storageKeys.customVideos, []),
   reactions: readJson(storageKeys.reactions, {}),
   playlists: readJson(storageKeys.playlists, [
     { id: "save-later", name: "Save for Later", items: [] }
   ]),
-  activePlaylist: localStorage.getItem(storageKeys.activePlaylist) || "save-later"
+  activePlaylist: localStorage.getItem(storageKeys.activePlaylist) || "save-later",
+  activeVideoId: ""
 };
 
 const els = {
@@ -201,23 +211,58 @@ const els = {
   sort: document.querySelector("#sort-filter"),
   savedOnly: document.querySelector("#saved-only"),
   freshOnly: document.querySelector("#fresh-only"),
+  unfinishedOnly: document.querySelector("#unfinished-only"),
   grid: document.querySelector("#video-grid"),
   template: document.querySelector("#video-card-template"),
   visibleCount: document.querySelector("#visible-count"),
   savedCount: document.querySelector("#saved-count"),
+  completedCount: document.querySelector("#completed-count"),
   playlistCount: document.querySelector("#playlist-count"),
   summary: document.querySelector("#result-summary"),
   emptyState: document.querySelector("#empty-state"),
   rail: document.querySelector("#recommendation-rail"),
+  progressBar: document.querySelector("#progress-bar"),
+  progressSummary: document.querySelector("#progress-summary"),
+  resumeNext: document.querySelector("#resume-next"),
+  apiStatus: document.querySelector("#api-status"),
   playlistPanel: document.querySelector("#playlist-panel"),
+  openIngest: document.querySelector("#open-ingest"),
   openPlaylists: document.querySelector("#open-playlists"),
   closePlaylists: document.querySelector("#close-playlists"),
   playlistForm: document.querySelector("#playlist-form"),
   playlistName: document.querySelector("#playlist-name"),
   playlistTabs: document.querySelector("#playlist-tabs"),
   playlistItems: document.querySelector("#playlist-items"),
+  videoDialog: document.querySelector("#video-dialog"),
+  closeDetail: document.querySelector("#close-detail"),
+  detailMeta: document.querySelector("#detail-meta"),
+  detailTitle: document.querySelector("#detail-title"),
+  detailThumb: document.querySelector("#detail-thumb"),
+  detailDescription: document.querySelector("#detail-description"),
+  detailDuration: document.querySelector("#detail-duration"),
+  detailLevel: document.querySelector("#detail-level"),
+  detailTopic: document.querySelector("#detail-topic"),
+  detailNote: document.querySelector("#detail-note"),
+  detailOpen: document.querySelector("#detail-open"),
+  detailSave: document.querySelector("#detail-save"),
+  detailComplete: document.querySelector("#detail-complete"),
+  detailAdd: document.querySelector("#detail-add"),
+  detailReport: document.querySelector("#detail-report"),
+  ingestDialog: document.querySelector("#ingest-dialog"),
+  ingestForm: document.querySelector("#ingest-form"),
+  closeIngest: document.querySelector("#close-ingest"),
+  ingestTitle: document.querySelector("#ingest-title-input"),
+  ingestUrl: document.querySelector("#ingest-url"),
+  ingestTopic: document.querySelector("#ingest-topic"),
+  ingestLevel: document.querySelector("#ingest-level"),
+  ingestDuration: document.querySelector("#ingest-duration"),
+  ingestYear: document.querySelector("#ingest-year"),
+  ingestDescription: document.querySelector("#ingest-description"),
+  ingestTags: document.querySelector("#ingest-tags"),
   feedbackDialog: document.querySelector("#feedback-dialog"),
   feedbackForm: document.querySelector("#feedback-form"),
+  feedbackType: document.querySelector("#feedback-type"),
+  feedbackMessage: document.querySelector("#feedback-message"),
   closeFeedback: document.querySelector("#close-feedback"),
   openFeedback: document.querySelector("#open-feedback")
 };
@@ -237,6 +282,9 @@ function readSet(key) {
 
 function persist() {
   localStorage.setItem(storageKeys.saved, JSON.stringify([...state.saved]));
+  localStorage.setItem(storageKeys.completed, JSON.stringify([...state.completed]));
+  localStorage.setItem(storageKeys.notes, JSON.stringify(state.notes));
+  localStorage.setItem(storageKeys.customVideos, JSON.stringify(state.customVideos));
   localStorage.setItem(storageKeys.reactions, JSON.stringify(state.reactions));
   localStorage.setItem(storageKeys.playlists, JSON.stringify(state.playlists));
   localStorage.setItem(storageKeys.activePlaylist, state.activePlaylist);
@@ -252,6 +300,51 @@ function normalize(value) {
   return String(value).toLowerCase().trim();
 }
 
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function getCatalogVideos() {
+  const baseVideos = state.remoteVideos.length ? state.remoteVideos : curatedVideos;
+  return [...baseVideos, ...state.customVideos];
+}
+
+function getVideoById(videoId) {
+  return getCatalogVideos().find((video) => video.id === videoId);
+}
+
+function apiVideoToLocal(video) {
+  return {
+    id: video.id,
+    title: video.title,
+    topic: video.topic,
+    level: video.level,
+    duration: video.duration_minutes,
+    year: video.year,
+    provider: video.provider,
+    url: video.url,
+    thumbnail: video.thumbnail_url || "",
+    description: video.description,
+    tags: video.tags || [],
+    popularity: video.popularity_score || 0
+  };
+}
+
+function setApiStatus(mode, label) {
+  state.apiMode = mode;
+  els.apiStatus.textContent = label;
+  els.apiStatus.dataset.status = mode;
+}
+
+function getCompletedCount() {
+  return [...state.completed].filter((id) => getVideoById(id)).length;
+}
+
 function seedPlaylistFromSaved() {
   const saveLater = state.playlists.find((playlist) => playlist.id === "save-later");
   if (saveLater) {
@@ -260,25 +353,32 @@ function seedPlaylistFromSaved() {
 }
 
 function hydrateFilters() {
-  const topics = ["all", ...[...new Set(curatedVideos.map((video) => video.topic))].sort()];
-  const levels = ["all", ...[...new Set(curatedVideos.map((video) => video.level))].sort()];
+  const videos = getCatalogVideos();
+  const topics = ["all", ...[...new Set(videos.map((video) => video.topic))].sort()];
+  const levels = ["all", ...[...new Set(videos.map((video) => video.level))].sort()];
 
   els.topic.innerHTML = topics
-    .map((topic) => `<option value="${topic}">${topic === "all" ? "All topics" : topic}</option>`)
+    .map((topic) => `<option value="${escapeHtml(topic)}">${topic === "all" ? "All topics" : escapeHtml(topic)}</option>`)
     .join("");
   els.level.innerHTML = levels
-    .map((level) => `<option value="${level}">${level === "all" ? "All levels" : level}</option>`)
+    .map((level) => `<option value="${escapeHtml(level)}">${level === "all" ? "All levels" : escapeHtml(level)}</option>`)
     .join("");
+
+  if (!topics.includes(state.topic)) state.topic = "all";
+  if (!levels.includes(state.level)) state.level = "all";
+  els.topic.value = state.topic;
+  els.level.value = state.level;
 }
 
 function scoreVideo(video) {
   let score = video.popularity;
   if (state.saved.has(video.id)) score += 18;
+  if (state.completed.has(video.id)) score -= 26;
   if (state.reactions[video.id] === "up") score += 14;
   if (state.reactions[video.id] === "down") score -= 22;
 
   const preferredTopics = new Set(
-    curatedVideos
+    getCatalogVideos()
       .filter((item) => state.saved.has(item.id) || state.reactions[item.id] === "up")
       .map((item) => item.topic)
   );
@@ -291,7 +391,7 @@ function scoreVideo(video) {
 function getFilteredVideos() {
   const query = normalize(state.query);
 
-  return curatedVideos
+  return getCatalogVideos()
     .filter((video) => {
       const searchable = normalize([
         video.title,
@@ -299,6 +399,7 @@ function getFilteredVideos() {
         video.level,
         video.provider,
         video.description,
+        state.notes[video.id] || "",
         video.tags.join(" ")
       ].join(" "));
 
@@ -312,8 +413,9 @@ function getFilteredVideos() {
         (state.duration === "long" && video.duration > 45);
       const matchesSaved = !state.savedOnly || state.saved.has(video.id);
       const matchesFresh = !state.freshOnly || video.year >= 2026;
+      const matchesUnfinished = !state.unfinishedOnly || !state.completed.has(video.id);
 
-      return matchesQuery && matchesTopic && matchesLevel && matchesDuration && matchesSaved && matchesFresh;
+      return matchesQuery && matchesTopic && matchesLevel && matchesDuration && matchesSaved && matchesFresh && matchesUnfinished;
     })
     .sort((a, b) => {
       if (state.sort === "newest") return b.year - a.year || b.popularity - a.popularity;
@@ -335,11 +437,14 @@ function renderVideoCard(video) {
   const tags = node.querySelector(".tag-row");
   const save = node.querySelector(".save-button");
   const add = node.querySelector(".playlist-button");
+  const details = node.querySelector(".details-button");
+  const complete = node.querySelector(".complete-button");
   const reactions = node.querySelectorAll(".reaction-button");
 
+  node.dataset.completed = String(state.completed.has(video.id));
   link.href = video.url;
   link.setAttribute("aria-label", `Open ${video.title}`);
-  image.src = video.thumbnail;
+  if (video.thumbnail) image.src = video.thumbnail;
   image.alt = `${video.title} thumbnail`;
   image.onerror = () => {
     image.removeAttribute("src");
@@ -350,13 +455,22 @@ function renderVideoCard(video) {
   topic.textContent = video.topic;
   level.textContent = video.level;
   duration.textContent = formatDuration(video.duration);
-  tags.innerHTML = video.tags.map((tag) => `<span>${tag}</span>`).join("");
+  tags.innerHTML = video.tags.map((tag) => `<span>${escapeHtml(tag)}</span>`).join("");
+  if (state.notes[video.id]) {
+    tags.insertAdjacentHTML("beforeend", "<span>Note</span>");
+  }
 
   save.textContent = state.saved.has(video.id) ? "Saved" : "Save";
   save.setAttribute("aria-pressed", String(state.saved.has(video.id)));
   save.addEventListener("click", () => toggleSaved(video.id));
 
   add.addEventListener("click", () => addToActivePlaylist(video.id));
+
+  details.addEventListener("click", () => openDetail(video.id));
+
+  complete.textContent = state.completed.has(video.id) ? "Done" : "Done";
+  complete.setAttribute("aria-pressed", String(state.completed.has(video.id)));
+  complete.addEventListener("click", () => toggleCompleted(video.id));
 
   reactions.forEach((button) => {
     const reaction = button.dataset.reaction;
@@ -374,16 +488,16 @@ function renderVideos() {
   videos.forEach((video) => fragment.appendChild(renderVideoCard(video)));
   els.grid.replaceChildren(fragment);
   els.visibleCount.textContent = videos.length;
-  els.savedCount.textContent = state.saved.size;
-  els.playlistCount.textContent = state.playlists.length;
   els.summary.textContent = `${videos.length} curated video${videos.length === 1 ? "" : "s"} ready`;
   els.emptyState.hidden = videos.length > 0;
+  updateCounts();
+  renderProgress();
   renderRecommendations();
 }
 
 function renderRecommendations() {
-  const recommendations = curatedVideos
-    .filter((video) => !state.saved.has(video.id) && state.reactions[video.id] !== "down")
+  const recommendations = getCatalogVideos()
+    .filter((video) => !state.completed.has(video.id) && state.reactions[video.id] !== "down")
     .sort((a, b) => scoreVideo(b) - scoreVideo(a))
     .slice(0, 4);
 
@@ -394,15 +508,59 @@ function renderRecommendations() {
 
   els.rail.replaceChildren(
     ...recommendations.map((video) => {
-      const card = document.createElement("a");
+      const card = document.createElement("button");
       card.className = "rail-card";
-      card.href = video.url;
-      card.target = "_blank";
-      card.rel = "noreferrer";
-      card.innerHTML = `<strong>${video.title}</strong><small>${video.topic} / ${formatDuration(video.duration)}</small>`;
+      card.type = "button";
+      card.innerHTML = `<strong>${escapeHtml(video.title)}</strong><small>${escapeHtml(video.topic)} / ${formatDuration(video.duration)}</small>`;
+      card.addEventListener("click", () => openDetail(video.id));
       return card;
     })
   );
+}
+
+function renderProgress() {
+  const total = getCatalogVideos().length;
+  const completed = getCompletedCount();
+  const percent = total ? Math.round((completed / total) * 100) : 0;
+  const completedMinutes = getCatalogVideos()
+    .filter((video) => state.completed.has(video.id))
+    .reduce((sum, video) => sum + video.duration, 0);
+
+  els.progressBar.style.width = `${percent}%`;
+  els.progressSummary.textContent = completed
+    ? `${completed} of ${total} videos completed / ${completedMinutes} minutes banked.`
+    : "Mark videos complete to build your learning signal.";
+}
+
+async function syncBackendVideos() {
+  if (!window.Get2LearnApi) {
+    setApiStatus("offline", "Local mode");
+    return;
+  }
+
+  try {
+    await window.Get2LearnApi.health();
+    setApiStatus("online", "API online");
+  } catch {
+    setApiStatus("offline", "Local mode");
+    return;
+  }
+
+  try {
+    const response = await window.Get2LearnApi.listVideos({ page_size: 100, sort: "popular" });
+    const videos = (response.items || []).map(apiVideoToLocal);
+    if (videos.length) {
+      state.remoteVideos = videos;
+      hydrateFilters();
+      renderVideos();
+      renderPlaylists();
+      setApiStatus("synced", "API synced");
+    } else {
+      setApiStatus("online", "API online");
+    }
+  } catch {
+    setApiStatus("partial", "API ready");
+  }
 }
 
 function renderPlaylists() {
@@ -428,7 +586,7 @@ function renderPlaylists() {
   );
 
   const items = active.items
-    .map((id) => curatedVideos.find((video) => video.id === id))
+    .map((id) => getVideoById(id))
     .filter(Boolean);
 
   if (!items.length) {
@@ -443,7 +601,7 @@ function renderPlaylists() {
       li.draggable = true;
       li.dataset.videoId = video.id;
       li.innerHTML = `
-        <span class="playlist-item-title">${video.title}</span>
+        <span class="playlist-item-title">${escapeHtml(video.title)}</span>
         <div class="playlist-item-actions">
           <button type="button" data-action="up">Up</button>
           <button type="button" data-action="down">Down</button>
@@ -470,7 +628,8 @@ function renderPlaylists() {
 }
 
 function updateCounts() {
-  els.savedCount.textContent = state.saved.size;
+  els.savedCount.textContent = [...state.saved].filter((id) => getVideoById(id)).length;
+  els.completedCount.textContent = getCompletedCount();
   els.playlistCount.textContent = state.playlists.length;
 }
 
@@ -489,12 +648,26 @@ function toggleSaved(videoId) {
   persist();
   renderVideos();
   renderPlaylists();
+  renderActiveDetail();
+}
+
+function toggleCompleted(videoId) {
+  if (state.completed.has(videoId)) {
+    state.completed.delete(videoId);
+  } else {
+    state.completed.add(videoId);
+  }
+  persist();
+  renderVideos();
+  renderPlaylists();
+  renderActiveDetail();
 }
 
 function setReaction(videoId, reaction) {
   state.reactions[videoId] = state.reactions[videoId] === reaction ? "" : reaction;
   persist();
   renderVideos();
+  renderActiveDetail();
 }
 
 function addToActivePlaylist(videoId) {
@@ -506,7 +679,10 @@ function addToPlaylist(playlistId, videoId, rerender) {
   if (!playlist) return;
   playlist.items = [...new Set([...playlist.items, videoId])];
   persist();
-  if (rerender) renderPlaylists();
+  if (rerender) {
+    renderPlaylists();
+    updateCounts();
+  }
 }
 
 function removeFromPlaylist(playlistId, videoId) {
@@ -517,6 +693,7 @@ function removeFromPlaylist(playlistId, videoId) {
   persist();
   renderVideos();
   renderPlaylists();
+  renderActiveDetail();
 }
 
 function movePlaylistItem(playlistId, from, to) {
@@ -526,6 +703,143 @@ function movePlaylistItem(playlistId, from, to) {
   playlist.items.splice(to, 0, item);
   persist();
   renderPlaylists();
+}
+
+function renderActiveDetail() {
+  if (!state.activeVideoId || !els.videoDialog.open) return;
+  const video = getVideoById(state.activeVideoId);
+  if (video) renderDetail(video);
+}
+
+function openDetail(videoId) {
+  const video = getVideoById(videoId);
+  if (!video) return;
+  state.activeVideoId = videoId;
+  renderDetail(video);
+  if (typeof els.videoDialog.showModal === "function") {
+    els.videoDialog.showModal();
+  }
+}
+
+function renderDetail(video) {
+  els.detailMeta.textContent = `${video.provider} / ${video.year}`;
+  els.detailTitle.textContent = video.title;
+  els.detailDescription.textContent = video.description;
+  els.detailDuration.textContent = formatDuration(video.duration);
+  els.detailLevel.textContent = video.level;
+  els.detailTopic.textContent = video.topic;
+  els.detailNote.value = state.notes[video.id] || "";
+  els.detailOpen.href = video.url;
+
+  if (video.thumbnail) {
+    els.detailThumb.hidden = false;
+    els.detailThumb.src = video.thumbnail;
+    els.detailThumb.alt = `${video.title} thumbnail`;
+  } else {
+    els.detailThumb.hidden = true;
+    els.detailThumb.removeAttribute("src");
+    els.detailThumb.alt = "";
+  }
+
+  els.detailSave.textContent = state.saved.has(video.id) ? "Saved" : "Save";
+  els.detailSave.setAttribute("aria-pressed", String(state.saved.has(video.id)));
+  els.detailComplete.textContent = state.completed.has(video.id) ? "Completed" : "Mark complete";
+  els.detailComplete.setAttribute("aria-pressed", String(state.completed.has(video.id)));
+}
+
+function openFeedbackDialog() {
+  if (typeof els.feedbackDialog.showModal === "function") {
+    els.feedbackDialog.showModal();
+  }
+}
+
+function reportActiveVideo() {
+  const video = getVideoById(state.activeVideoId);
+  if (!video) return;
+  els.feedbackType.value = "broken";
+  els.feedbackMessage.value = `Broken link: ${video.title} (${video.url})`;
+  els.videoDialog.close();
+  openFeedbackDialog();
+}
+
+function extractYouTubeId(url) {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.replace("www.", "");
+    if (host === "youtu.be") return parsed.pathname.slice(1).split("/")[0];
+    if (host.endsWith("youtube.com")) {
+      const directId = parsed.searchParams.get("v");
+      if (directId) return directId;
+      const match = parsed.pathname.match(/\/(embed|shorts)\/([A-Za-z0-9_-]{11})/);
+      return match ? match[2] : "";
+    }
+  } catch {
+    return "";
+  }
+  return "";
+}
+
+function thumbnailFromUrl(url) {
+  const youtubeId = extractYouTubeId(url);
+  return youtubeId ? `https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg` : "";
+}
+
+function providerFromUrl(url) {
+  try {
+    const host = new URL(url).hostname.replace("www.", "");
+    if (host.includes("youtube")) return "YouTube";
+    if (host.includes("youtu.be")) return "YouTube";
+    if (host.includes("vimeo")) return "Vimeo";
+    return host.split(".")[0].replace(/^./, (letter) => letter.toUpperCase());
+  } catch {
+    return "External";
+  }
+}
+
+function slugify(value) {
+  return normalize(value).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+function createCustomVideo() {
+  const title = els.ingestTitle.value.trim();
+  const url = els.ingestUrl.value.trim();
+  const topic = els.ingestTopic.value.trim();
+  const level = els.ingestLevel.value;
+  const duration = Number(els.ingestDuration.value);
+  const year = Number(els.ingestYear.value);
+  const description = els.ingestDescription.value.trim();
+  const tags = els.ingestTags.value
+    .split(",")
+    .map((tag) => tag.trim())
+    .filter(Boolean)
+    .slice(0, 5);
+
+  return {
+    id: `custom-${slugify(title) || "video"}-${Date.now()}`,
+    title,
+    topic,
+    level,
+    duration,
+    year,
+    provider: providerFromUrl(url),
+    url,
+    thumbnail: thumbnailFromUrl(url),
+    description,
+    tags: tags.length ? tags : [topic],
+    popularity: 70
+  };
+}
+
+function openResumeCandidate() {
+  const activePlaylist = state.playlists.find((playlist) => playlist.id === state.activePlaylist);
+  const playlistCandidate = activePlaylist
+    ? activePlaylist.items.map((id) => getVideoById(id)).find((video) => video && !state.completed.has(video.id))
+    : null;
+  const recommendedCandidate = getCatalogVideos()
+    .filter((video) => !state.completed.has(video.id) && state.reactions[video.id] !== "down")
+    .sort((a, b) => scoreVideo(b) - scoreVideo(a))[0];
+  const candidate = playlistCandidate || recommendedCandidate;
+  if (candidate) openDetail(candidate.id);
 }
 
 function createPlaylist(name) {
@@ -572,6 +886,31 @@ function bindEvents() {
     state.freshOnly = event.target.checked;
     renderVideos();
   });
+  els.unfinishedOnly.addEventListener("change", (event) => {
+    state.unfinishedOnly = event.target.checked;
+    renderVideos();
+  });
+  els.resumeNext.addEventListener("click", openResumeCandidate);
+  els.openIngest.addEventListener("click", () => {
+    if (state.topic !== "all") els.ingestTopic.value = state.topic;
+    if (typeof els.ingestDialog.showModal === "function") {
+      els.ingestDialog.showModal();
+    }
+  });
+  els.closeIngest.addEventListener("click", () => {
+    els.ingestDialog.close();
+  });
+  els.ingestForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const video = createCustomVideo();
+    state.customVideos.unshift(video);
+    persist();
+    hydrateFilters();
+    renderVideos();
+    renderPlaylists();
+    els.ingestForm.reset();
+    els.ingestDialog.close();
+  });
   els.openPlaylists.addEventListener("click", () => {
     els.playlistPanel.classList.add("is-open");
   });
@@ -583,23 +922,60 @@ function bindEvents() {
     createPlaylist(els.playlistName.value);
     els.playlistName.value = "";
   });
-  els.openFeedback.addEventListener("click", () => {
-    if (typeof els.feedbackDialog.showModal === "function") {
-      els.feedbackDialog.showModal();
+  els.closeDetail.addEventListener("click", () => {
+    els.videoDialog.close();
+  });
+  els.videoDialog.addEventListener("close", () => {
+    state.activeVideoId = "";
+    renderVideos();
+  });
+  els.detailThumb.addEventListener("error", () => {
+    els.detailThumb.hidden = true;
+    els.detailThumb.removeAttribute("src");
+  });
+  els.detailNote.addEventListener("input", (event) => {
+    if (!state.activeVideoId) return;
+    const note = event.target.value.trim();
+    if (note) {
+      state.notes[state.activeVideoId] = note;
+    } else {
+      delete state.notes[state.activeVideoId];
     }
+    persist();
+  });
+  els.detailSave.addEventListener("click", () => {
+    if (state.activeVideoId) toggleSaved(state.activeVideoId);
+  });
+  els.detailComplete.addEventListener("click", () => {
+    if (state.activeVideoId) toggleCompleted(state.activeVideoId);
+  });
+  els.detailAdd.addEventListener("click", () => {
+    if (state.activeVideoId) addToActivePlaylist(state.activeVideoId);
+  });
+  els.detailReport.addEventListener("click", reportActiveVideo);
+  els.openFeedback.addEventListener("click", () => {
+    openFeedbackDialog();
   });
   els.closeFeedback.addEventListener("click", () => {
     els.feedbackDialog.close();
   });
   els.feedbackForm.addEventListener("submit", () => {
     const feedback = readJson(storageKeys.feedback, []);
+    const message = els.feedbackMessage.value.trim();
+    const feedbackType = els.feedbackType.value;
     feedback.push({
-      type: document.querySelector("#feedback-type").value,
-      message: document.querySelector("#feedback-message").value.trim(),
+      type: feedbackType,
+      message,
       createdAt: new Date().toISOString()
     });
     localStorage.setItem(storageKeys.feedback, JSON.stringify(feedback));
-    document.querySelector("#feedback-message").value = "";
+    if (window.Get2LearnApi && state.apiMode !== "offline") {
+      window.Get2LearnApi.createFeedback({
+        feedback_type: feedbackType === "broken" ? "broken_link" : feedbackType === "topic" ? "topic_request" : "suggestion",
+        message
+      }).catch(() => setApiStatus("partial", "API ready"));
+    }
+    els.feedbackMessage.value = "";
   });
 }
 
@@ -610,6 +986,7 @@ function init() {
   renderVideos();
   renderPlaylists();
   persist();
+  syncBackendVideos();
 }
 
 init();
