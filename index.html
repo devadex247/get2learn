@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="get2learn is a fast curated video access platform for young tech professionals.">
+    <title>get2learn Video Curation Platform</title>
+    <link rel="preconnect" href="https://i.ytimg.com">
+    <link rel="stylesheet" href="styles.css">
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#app" aria-label="get2learn home">
+        <span class="brand-mark">g2l</span>
+        <span>
+          <strong>get2learn</strong>
+          <small>curated tech video access</small>
+        </span>
+      </a>
+
+      <nav class="top-actions" aria-label="Primary">
+        <button class="icon-button" id="open-playlists" type="button" title="Open playlists" aria-label="Open playlists">
+          <span class="button-icon" aria-hidden="true">+</span>
+          <span class="button-text">Playlist</span>
+        </button>
+        <button class="icon-button" id="open-feedback" type="button" title="Report a link or request a topic" aria-label="Report a link or request a topic">
+          <span class="button-icon" aria-hidden="true">!</span>
+          <span class="button-text">Feedback</span>
+        </button>
+      </nav>
+    </header>
+
+    <main id="app" class="app-shell">
+      <section class="workspace" aria-labelledby="directory-title">
+        <div class="workspace-head">
+          <div>
+            <p class="eyebrow">MVP directory</p>
+            <h1 id="directory-title">High-signal videos for builders</h1>
+          </div>
+          <div class="metric-strip" aria-label="Platform activity">
+            <span><strong id="visible-count">0</strong> visible</span>
+            <span><strong id="saved-count">0</strong> saved</span>
+            <span><strong id="playlist-count">0</strong> playlists</span>
+          </div>
+        </div>
+
+        <form class="control-surface" id="filter-form" role="search" aria-label="Search and filter videos">
+          <label class="search-field">
+            <span>Search</span>
+            <input id="search-input" name="search" type="search" placeholder="Search React, Docker, AI, design..." autocomplete="off">
+          </label>
+
+          <div class="filter-grid">
+            <label>
+              <span>Topic</span>
+              <select id="topic-filter" name="topic"></select>
+            </label>
+            <label>
+              <span>Level</span>
+              <select id="level-filter" name="level"></select>
+            </label>
+            <label>
+              <span>Length</span>
+              <select id="duration-filter" name="duration">
+                <option value="all">Any length</option>
+                <option value="short">Under 20 min</option>
+                <option value="medium">20-45 min</option>
+                <option value="long">45+ min</option>
+              </select>
+            </label>
+            <label>
+              <span>Sort</span>
+              <select id="sort-filter" name="sort">
+                <option value="recommended">Recommended</option>
+                <option value="newest">Newest</option>
+                <option value="shortest">Shortest</option>
+                <option value="popular">Most useful</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="quick-toggles" aria-label="Quick filters">
+            <label>
+              <input id="saved-only" type="checkbox">
+              <span>Saved only</span>
+            </label>
+            <label>
+              <input id="fresh-only" type="checkbox">
+              <span>New this year</span>
+            </label>
+          </div>
+        </form>
+
+        <section class="recommendation-band" aria-labelledby="recommended-title">
+          <div>
+            <p class="eyebrow">Personalized</p>
+            <h2 id="recommended-title">Recommended next</h2>
+          </div>
+          <div class="rail" id="recommendation-rail" aria-live="polite"></div>
+        </section>
+
+        <section aria-labelledby="results-title">
+          <div class="section-head">
+            <h2 id="results-title">Video directory</h2>
+            <p id="result-summary" aria-live="polite">Loading curated resources...</p>
+          </div>
+          <div class="video-grid" id="video-grid"></div>
+          <p class="empty-state" id="empty-state" hidden>No videos match those filters yet. Try a broader topic or request one from Feedback.</p>
+        </section>
+      </section>
+
+      <aside class="side-panel" id="playlist-panel" aria-labelledby="playlist-title">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">Learning queue</p>
+            <h2 id="playlist-title">Playlists</h2>
+          </div>
+          <button class="ghost-button panel-close" id="close-playlists" type="button">Close</button>
+        </div>
+
+        <form class="inline-form" id="playlist-form">
+          <label>
+            <span>New playlist</span>
+            <input id="playlist-name" type="text" maxlength="40" placeholder="e.g. Interview prep">
+          </label>
+          <button class="primary-button" type="submit">Create</button>
+        </form>
+
+        <div class="playlist-tabs" id="playlist-tabs" role="tablist" aria-label="Playlists"></div>
+        <ol class="playlist-items" id="playlist-items"></ol>
+      </aside>
+    </main>
+
+    <dialog class="feedback-dialog" id="feedback-dialog" aria-labelledby="feedback-title">
+      <form method="dialog" class="dialog-card" id="feedback-form">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">Community maintenance</p>
+            <h2 id="feedback-title">Report or request</h2>
+          </div>
+          <button class="ghost-button" id="close-feedback" type="button">Close</button>
+        </div>
+
+        <label>
+          <span>Type</span>
+          <select id="feedback-type" required>
+            <option value="broken">Report broken link</option>
+            <option value="topic">Request topic</option>
+            <option value="quality">Suggest better resource</option>
+          </select>
+        </label>
+        <label>
+          <span>Message</span>
+          <textarea id="feedback-message" rows="4" maxlength="260" placeholder="Tell the curator what needs attention." required></textarea>
+        </label>
+        <button class="primary-button" value="submit" type="submit">Send feedback</button>
+      </form>
+    </dialog>
+
+    <template id="video-card-template">
+      <article class="video-card">
+        <a class="thumb-link" target="_blank" rel="noreferrer noopener">
+          <img class="thumb" alt="" width="480" height="270" loading="lazy" decoding="async">
+          <span class="duration-pill"></span>
+        </a>
+        <div class="card-body">
+          <div class="card-meta">
+            <span class="topic-pill"></span>
+            <span class="level-pill"></span>
+          </div>
+          <h3></h3>
+          <p class="description"></p>
+          <div class="tag-row"></div>
+          <div class="card-actions">
+            <button class="save-button" type="button"></button>
+            <button class="playlist-button" type="button">Add</button>
+            <button class="reaction-button" data-reaction="up" type="button" title="Mark useful">Useful</button>
+            <button class="reaction-button" data-reaction="down" type="button" title="Mark less useful">Skip</button>
+          </div>
+        </div>
+      </article>
+    </template>
+  </body>
+</html>
