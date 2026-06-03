@@ -31,6 +31,12 @@ http://localhost:8000/api/v1/health
 
 ## Database setup
 
+First verify your `.env` without printing secrets:
+
+```powershell
+.\.venv\Scripts\python.exe -m app.db.doctor
+```
+
 If Docker is available:
 
 ```powershell
@@ -44,6 +50,19 @@ If Docker is not available, install PostgreSQL locally or provide a hosted Postg
 
 ```text
 DATABASE_URL=postgresql+asyncpg://USER:PASSWORD@HOST:PORT/DB_NAME
+```
+
+For Supabase, prefer the **Session Pooler** URL on port `5432`, converted to:
+
+```text
+postgresql+asyncpg://postgres.PROJECT_REF:PASSWORD@aws-0-REGION.pooler.supabase.com:5432/postgres
+```
+
+After migration and seeding, start the API and run:
+
+```powershell
+uvicorn app.main:app --reload --port 8000
+.\.venv\Scripts\python.exe -m app.services.api_smoke
 ```
 
 ## Notes
