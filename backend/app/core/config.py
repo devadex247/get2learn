@@ -1,6 +1,7 @@
 import json
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -16,6 +17,7 @@ class Settings(BaseSettings):
     db_pool_size: int = 10
     db_max_overflow: int = 20
     db_echo: bool = False
+    db_prepared_statement_cache_size: int | None = None
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
@@ -28,6 +30,13 @@ class Settings(BaseSettings):
             parsed = json.loads(raw_value)
             return [str(origin).strip() for origin in parsed if str(origin).strip()]
         return [origin.strip() for origin in raw_value.split(",") if origin.strip()]
+
+    @field_validator("db_prepared_statement_cache_size", mode="before")
+    @classmethod
+    def blank_prepared_statement_cache_size(cls, value: object) -> object:
+        if value == "":
+            return None
+        return value
 
 
 @lru_cache

@@ -6,17 +6,19 @@ from urllib.parse import urlsplit, urlunsplit
 from sqlalchemy import text
 
 from app.core.config import get_settings
-from app.db.session import engine
+from app.db.session import database_url_for_engine, engine
 
 
 @dataclass(frozen=True)
 class DatabaseUrlReport:
     safe_url: str
+    safe_engine_url: str
     is_asyncpg: bool
     is_supabase: bool
     is_local: bool
     uses_pooler: bool
     looks_transaction_pooler: bool
+    disables_prepared_statement_cache: bool
 
 
 def mask_database_url(database_url: str) -> str:
@@ -32,14 +34,17 @@ def mask_database_url(database_url: str) -> str:
 
 def inspect_database_url(database_url: str) -> DatabaseUrlReport:
     parsed = urlsplit(database_url)
+    engine_url = database_url_for_engine(database_url)
     host = parsed.hostname or ""
     return DatabaseUrlReport(
         safe_url=mask_database_url(database_url),
+        safe_engine_url=mask_database_url(engine_url),
         is_asyncpg=database_url.startswith("postgresql+asyncpg://"),
         is_supabase="supabase" in host or "pooler.supabase.com" in host,
         is_local=host in {"localhost", "127.0.0.1"},
         uses_pooler="pooler.supabase.com" in host,
         looks_transaction_pooler=parsed.port == 6543,
+        disables_prepared_statement_cache="prepared_statement_cache_size=0" in engine_url,
     )
 
 
@@ -48,11 +53,13 @@ async def check_database() -> None:
     report = inspect_database_url(settings.database_url)
 
     print("Database URL:", report.safe_url)
+    print("Engine URL:", report.safe_engine_url)
     print("Uses asyncpg:", report.is_asyncpg)
     print("Supabase host:", report.is_supabase)
     print("Local host:", report.is_local)
     print("Supabase pooler:", report.uses_pooler)
     print("Transaction pooler port:", report.looks_transaction_pooler)
+    print("Prepared statement cache disabled:", report.disables_prepared_statement_cache)
 
     if not report.is_asyncpg:
         raise SystemExit("DATABASE_URL must start with postgresql+asyncpg://")
@@ -63,9 +70,12 @@ async def check_database() -> None:
         async with engine.connect() as connection:
             version = await connection.scalar(text("select version()"))
             current_database = await connection.scalar(text("select current_database()"))
-            alembic_version = await connection.scalar(
-                text("select version_num from alembic_version limit 1")
-            )
+            try:
+                alembic_version = await connection.scalar(
+                    text("select version_num from alembic_version limit 1")
+                )
+            except SQLAlchemyError:
+                alembic_version = None
     except (OSError, SQLAlchemyError) as exc:
         print("Connection check: failed")
         print(f"Reason: {exc}")

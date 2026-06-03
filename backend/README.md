@@ -58,6 +58,8 @@ For Supabase, prefer the **Session Pooler** URL on port `5432`, converted to:
 postgresql+asyncpg://postgres.PROJECT_REF:PASSWORD@aws-0-REGION.pooler.supabase.com:5432/postgres
 ```
 
+If Supabase only gives you a Transaction Pooler URL on port `6543`, the backend automatically adds `prepared_statement_cache_size=0` for SQLAlchemy/asyncpg. Session Pooler is still preferred for this persistent FastAPI service.
+
 After migration and seeding, start the API and run:
 
 ```powershell
