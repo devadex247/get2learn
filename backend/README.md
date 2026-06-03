@@ -67,6 +67,13 @@ uvicorn app.main:app --reload --port 8000
 .\.venv\Scripts\python.exe -m app.services.api_smoke
 ```
 
+## Checks
+
+```powershell
+.\.venv\Scripts\python.exe -m unittest discover -s tests
+.\.venv\Scripts\python.exe -m compileall app alembic tests
+```
+
 ## Notes
 
 - A running PostgreSQL database is required before real API execution.
