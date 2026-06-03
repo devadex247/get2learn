@@ -63,6 +63,14 @@ If Supabase only gives you a Transaction Pooler URL on port `6543`, the backend 
 After migration and seeding, start the API and run:
 
 ```powershell
+.\.venv\Scripts\python.exe -m app.db.setup
+```
+
+This setup command checks the database, applies migrations, seeds starter videos, and checks the final migration state. It refuses to run while `DATABASE_URL` still points at local Postgres.
+
+Then start the API and run:
+
+```powershell
 uvicorn app.main:app --reload --port 8000
 .\.venv\Scripts\python.exe -m app.services.api_smoke
 ```
