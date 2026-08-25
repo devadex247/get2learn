@@ -1,511 +1,269 @@
 # 🚀 get2learn
 
-> A curated technical learning platform designed to help developers, students, and young tech professionals discover, organize, and track high-quality educational video content.
+> A curated technical learning platform that helps developers, students, and young tech professionals discover, organize, and make progress through high-quality educational video content.
 
 ![Status](https://img.shields.io/badge/Status-MVP-green?style=for-the-badge)
-![Frontend](https://img.shields.io/badge/Frontend-Vanilla_JS-F7DF1E?style=for-the-badge&logo=javascript)
-![Backend](https://img.shields.io/badge/Backend-FastAPI-009688?style=for-the-badge&logo=fastapi)
-![Database](https://img.shields.io/badge/Database-PostgreSQL-336791?style=for-the-badge&logo=postgresql)
+![Frontend](https://img.shields.io/badge/Frontend-Vanilla%20JS-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
+![Backend](https://img.shields.io/badge/Backend-FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)
+![Database](https://img.shields.io/badge/Database-PostgreSQL-336791?style=for-the-badge&logo=postgresql&logoColor=white)
+![Architecture](https://img.shields.io/badge/Architecture-Local--First-blue?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)
 
 ---
 
-# 📖 Overview
+## 📖 What is get2learn?
 
-**get2learn** is a lightweight learning ecosystem built to curate, organize, and personalize educational video resources for technology learners.
+**get2learn** is a technical learning discovery and organization platform built around a simple problem:
 
-The platform combines a fast, dependency-free frontend experience with a scalable FastAPI backend architecture, enabling users to:
+> There is an overwhelming amount of educational content online, but finding the right resource, organizing it, and actually making progress through it is difficult.
+
+get2learn provides a focused environment where learners can:
 
 - Discover curated technical videos
-- Save and organize learning resources
-- Track learning progress
+- Search and filter educational resources
+- Save resources for later
 - Build custom playlists
-- Receive personalized recommendations
-- Scale into AI-powered learning workflows
+- Track learning progress
+- Write private notes
+- React to resources
+- Resume unfinished lessons
+- Receive behavior-based recommendations
+- Submit new learning resources
+- Report broken links
+- Request topics and better resources
+
+The current version is a **frontend-first MVP** built with plain HTML, CSS, and JavaScript.
+
+A FastAPI backend scaffold is also present and provides the foundation for future authentication, persistent storage, APIs, recommendations, and AI-powered learning features.
 
 ---
 
-# 🏗️ System Architecture
+# 🎯 The Problem
 
-```text
-┌─────────────────────────────────────────────────────────┐
-│                       get2learn                         │
-│          Technical Video Learning Ecosystem             │
-└────────────────────┬────────────────────┬───────────────┘
-                     │
-      ┌──────────────┴──────────────┐
-      │                             │
-      ▼                             ▼
-🎨 Frontend Application      🚀 Backend Platform
-Vanilla HTML/CSS/JS          FastAPI + PostgreSQL
+Technical learners often rely on a combination of:
 
-• Local Storage              • REST API
-• Search Engine              • Authentication
-• Playlists                  • RBAC
-• Progress Tracking          • AI Services
-• Personalization            • Vector Search
-```
+- YouTube
+- Blog posts
+- Documentation
+- Courses
+- GitHub repositories
+- Bookmarks
+- Browser history
+- Notes apps
+- Personal spreadsheets
+
+The result is often fragmented learning.
+
+A learner may find a great video today, forget where it was, save dozens of unrelated resources, lose track of what they completed, and struggle to decide what to study next.
+
+**get2learn is designed to turn scattered technical resources into an organized learning experience.**
 
 ---
 
-# ✨ Core Features
+# ✨ Current MVP
 
-## 🎥 Curated Video Directory
+The current MVP is fully functional as a **browser-based local-first learning application**.
 
-Browse carefully selected technical learning resources with:
+No account is required.
 
-- Thumbnails
+No package installation is required.
+
+No database is required.
+
+User activity is persisted through the browser's `localStorage`.
+
+---
+
+# 🎥 Video Directory
+
+The application provides a curated catalogue of technical learning resources.
+
+Each resource can contain:
+
+- Thumbnail
+- Title
+- Topic
+- Difficulty level
+- Duration
+- Description
+- Tags
+- Provider
+- Year
+- Source URL
+
+Video thumbnails are lazy-loaded to reduce initial page weight.
+
+Videos are **not embedded directly into the directory**, which keeps the browsing experience lightweight and fast.
+
+---
+
+# 🔍 Search & Discovery
+
+get2learn provides client-side search across multiple resource attributes.
+
+### Search across
+
 - Titles
 - Topics
 - Difficulty levels
-- Duration metadata
-- Tags
-- Provider information
-- Source links
-
----
-
-## 🔍 Smart Search & Filtering
-
-Search across:
-
-- Video titles
-- Topics
-- Difficulty levels
-- Tags
-- Descriptions
-- Notes
 - Providers
+- Descriptions
+- Tags
+- Private notes
 
-Filter by:
+### Filters
 
 - Topic
-- Level
+- Difficulty
 - Duration
-- Saved content
-- Unfinished content
-- New releases
+- Saved resources
+- New resources
+- Unfinished resources
 
-Sort by:
+### Duration filters
+
+- Any length
+- Under 20 minutes
+- 20–45 minutes
+- 45+ minutes
+
+### Sorting
 
 - Recommended
 - Newest
 - Shortest
-- Most Useful
+- Most useful
+
+All filtering and search currently happen in memory on the client.
 
 ---
 
-## 🤖 Personalized Learning Experience
+# 💾 Saved Videos
 
-User interactions influence recommendation ranking:
+Learners can save resources directly from video cards.
+
+Saved state:
+
+- Persists after page refresh
+- Can be filtered through `Saved only`
+- Automatically adds the resource to the default **Save for Later** playlist
+
+Users can therefore build a personal queue without needing an account.
+
+---
+
+# 📋 Playlist Management
+
+get2learn supports both a default learning queue and custom playlists.
+
+### Default playlist
+
+**Save for Later**
+
+### Custom playlists
+
+Users can create playlists for different learning goals, technologies, or projects.
+
+Playlist functionality includes:
+
+- Create playlists
+- Add videos
+- Remove videos
+- Reorder resources
+- Drag-and-drop ordering
+- Move items up and down
+- Persist playlist state locally
+
+Removing an item from **Save for Later** also removes its saved state.
+
+---
+
+# 👍 Learning Reactions
+
+Users can provide lightweight feedback on resources.
+
+Available reactions:
 
 - 👍 Useful
 - 👎 Skip
-- ✅ Completed
-- 💾 Saved
 
-Completed or skipped videos are automatically deprioritized.
+These interactions influence the recommendation system.
 
----
+Useful resources receive a higher recommendation score, while skipped resources are deprioritized.
 
-## 📋 Playlist Management
-
-Create and manage:
-
-- Save For Later
-- Custom Playlists
-- Reordering Controls
-- Learning Paths
-
-All playlist states persist locally.
+Reaction state persists after refresh.
 
 ---
 
-## 📊 Learning Progress Tracking
+# 📊 Learning Progress
 
-Track:
+get2learn tracks basic learning progress locally.
 
-- Videos completed
-- Learning minutes
-- Progress percentage
-- Resume next unfinished lesson
+Users can mark resources as:
 
----
+- Complete
+- Incomplete
 
-## 🗂️ Video Detail Drawer
+The application provides:
 
-View complete resource information:
+- Completed video count
+- Learning progress percentage
+- Completed learning minutes
+- Unfinished resource filtering
+- Resume-next functionality
 
-- Description
-- Tags
-- Difficulty
-- Topic
-- Open Source Link
-- Save / Unsave
-- Mark Complete
-- Add to Playlist
-- Report Issues
+### Resume Next
+
+The learner can continue from the next unfinished resource in their active playlist or recommendation list.
+
+This turns the application from a simple bookmark manager into a lightweight learning workflow.
 
 ---
 
-## 🛠️ Curator Submission Workflow
+# 🗂️ Video Detail Drawer
 
-Submit new learning resources directly from the interface.
+Each resource can be opened in a detailed view.
 
-Supported fields:
+The drawer displays:
 
+- Thumbnail
 - Title
-- URL
-- Topic
-- Difficulty
-- Duration
+- Provider
 - Year
 - Description
-- Tags
+- Duration
+- Difficulty
+- Topic
 
-Features:
+Available actions include:
 
-- Automatic YouTube thumbnail detection
-- Instant preview
-- Local persistence
+- Open source video
+- Save / unsave
+- Mark complete / incomplete
+- Add to active playlist
+- Write private notes
+- Report the resource
 
----
-
-## 💬 Feedback System
-
-Collect:
-
-- Broken link reports
-- Topic requests
-- Learning resource suggestions
-- Platform feedback
+The drawer uses the same underlying state as the video cards, so changes remain synchronized throughout the application.
 
 ---
 
-# ⚡ Frontend Stack
+# 📝 Private Notes
 
-## Technology
+Learners can attach private notes to individual learning resources.
 
-- HTML5
-- CSS3
-- Vanilla JavaScript (ES6+)
-- localStorage
+Notes:
 
-## Philosophy
+- Persist after refresh
+- Are searchable
+- Are associated with individual videos
+- Display a `Note` indicator on resource cards
 
-### Zero Dependencies
-
-No:
-
-- React
-- Vue
-- Angular
-- Build tools
-- Package managers
-
-### Fast By Default
-
-- Lazy-loaded images
-- In-memory filtering
-- requestAnimationFrame rendering
-- No embedded video overhead
-
-### Offline-Friendly
-
-Local-first architecture ensures usability even without backend connectivity.
-
----
-
-# 🚀 Frontend Setup
-
-```bash
-cd get2learn
-
-python -m http.server 5500
-```
-
-Open:
+Example:
 
 ```text
-http://localhost:5500
-```
+"Review this section when learning async Python."
 
----
+"Important explanation of database indexing around 18:30."
 
-# 🚀 Backend Platform
-
-Built with FastAPI for performance, scalability, and future AI integrations.
-
-## Backend Features
-
-### FastAPI REST API
-
-- Async endpoints
-- Versioned APIs
-- OpenAPI documentation
-
-### Authentication & Security
-
-- JWT Authentication
-- RBAC Authorization
-- Dependency Injection
-- Protected Routes
-
-### PostgreSQL Database
-
-Core entities:
-
-- Users
-- Videos
-- Playlists
-- Interactions
-- Notes
-- Feedback
-
-### Search & Recommendation Engine
-
-Supports:
-
-- Filtering
-- Sorting
-- Pagination
-- Recommendation scoring
-
-### AI-Ready Architecture
-
-Designed to support:
-
-- Embeddings
-- Vector Search
-- Semantic Recommendations
-- Retrieval-Augmented Generation (RAG)
-
----
-
-# ⚙️ Backend Setup
-
-## Create Environment
-
-```bash
-cd backend
-
-python -m venv .venv
-```
-
-### Activate Environment
-
-#### Windows
-
-```bash
-.venv\Scripts\activate
-```
-
-#### Linux / Mac
-
-```bash
-source .venv/bin/activate
-```
-
-### Install Dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### Configure Environment
-
-```bash
-cp .env.example .env
-```
-
-### Run Development Server
-
-```bash
-uvicorn app.main:app --reload --port 8000
-```
-
-Health endpoint:
-
-```text
-http://localhost:8000/api/v1/health
-```
-
----
-
-# 🗄️ Database Setup
-
-Using Docker:
-
-```bash
-docker compose up -d
-```
-
-Run migrations:
-
-```bash
-alembic upgrade head
-```
-
-Seed database:
-
-```bash
-python -m app.db.seed
-```
-
-Alternative PostgreSQL configuration:
-
-```env
-DATABASE_URL=postgresql+asyncpg://USER:PASSWORD@HOST:PORT/DB_NAME
-```
-
----
-
-# 📂 Suggested Project Structure
-
-```text
-get2learn/
-│
-├── frontend/
-│   ├── index.html
-│   ├── styles/
-│   ├── scripts/
-│   └── assets/
-│
-├── backend/
-│   ├── app/
-│   │   ├── api/
-│   │   ├── core/
-│   │   ├── db/
-│   │   ├── models/
-│   │   ├── services/
-│   │   └── main.py
-│   │
-│   ├── migrations/
-│   ├── tests/
-│   └── requirements.txt
-│
-└── README.md
-```
-
----
-
-# 🧠 Future AI Roadmap
-
-## Phase 1 — Intelligent Search
-
-- Semantic search
-- Natural language queries
-- Smart filtering
-
-## Phase 2 — Recommendation Engine
-
-- User embeddings
-- Learning path suggestions
-- Personalized content ranking
-
-## Phase 3 — AI Learning Assistant
-
-- Video summarization
-- Resource recommendations
-- Topic explanations
-- Study planning
-
-## Phase 4 — Full RAG Architecture
-
-```text
-Video Metadata
-       │
-       ▼
-Data Cleaning
-       │
-       ▼
-Embedding Generation
-       │
-       ▼
-Vector Database
-       │
-       ▼
-Retriever
-       │
-       ▼
-LLM
-       │
-       ▼
-AI Learning Assistant
-```
-
----
-
-# ⚠️ Current Limitations
-
-- No active backend synchronization
-- No multi-device data syncing
-- No admin moderation panel
-- No analytics dashboard
-- No production monitoring
-- Metadata scraping not implemented
-- Default security keys must be replaced before production
-
----
-
-# 🎯 Next Milestones
-
-## 1. Data Portability
-
-- Export learning data
-- Import backups
-- Migration utilities
-
-## 2. Full Database Integration
-
-- PostgreSQL persistence
-- API-driven content management
-
-## 3. User Authentication
-
-- Login & registration
-- Protected user profiles
-
-## 4. Admin Moderation
-
-- Resource approval workflow
-- Link verification
-
-## 5. Framework Evolution
-
-Migration path:
-
-```text
-Vanilla JS
-    ↓
-Next.js
-    ↓
-Analytics
-    ↓
-Performance Monitoring
-    ↓
-Enterprise Scale
-```
-
----
-
-# 🤝 Contributing
-
-Contributions, suggestions, and improvements are welcome.
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit changes
-4. Open a Pull Request
-
----
-
-# 📄 License
-
-This project is released under the MIT License.
-
----
-
-## 🌍 Vision
-
-**get2learn aims to become the intelligent learning companion for developers—combining curated educational resources, AI-powered recommendations, and personalized learning experiences into one seamless platform.**
+"Try implementing this architecture in a personal project."
