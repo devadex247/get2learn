@@ -3,277 +3,528 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="get2learn is a fast curated video access platform for young tech professionals.">
-    <title>get2learn Video Curation Platform</title>
+    <meta name="description" content="get2learn — a calm, curated learning workspace for developers and tech professionals. Discover, save, and track high-signal technical videos.">
+    <title>get2learn — Curated Learning Workspace</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="preconnect" href="https://i.ytimg.com">
     <link rel="stylesheet" href="styles.css">
     <script src="api.js" defer></script>
     <script src="app.js" defer></script>
   </head>
   <body>
-    <header class="topbar">
-      <a class="brand" href="#app" aria-label="get2learn home">
-        <span class="brand-mark">g2l</span>
+
+    <!-- Skip to content -->
+    <a class="skip-link" href="#main-content">Skip to content</a>
+
+    <!-- ── Top bar ──────────────────────────────────────────── -->
+    <header class="topbar" role="banner">
+      <a class="brand" href="#" id="brand-link" aria-label="get2learn — go to home">
+        <span class="brand-mark" aria-hidden="true">g2l</span>
         <span>
           <strong>get2learn</strong>
-          <small>curated tech video access</small>
+          <small>curated learning workspace</small>
         </span>
       </a>
 
-      <nav class="top-actions" aria-label="Primary">
-        <span class="api-status" id="api-status" data-status="checking">API checking</span>
-        <button class="icon-button" id="open-ingest" type="button" title="Add a curated link" aria-label="Add a curated link">
-          <span class="button-icon" aria-hidden="true">in</span>
+      <div class="top-actions" aria-label="Quick actions">
+        <span class="api-status" id="api-status" data-status="checking" aria-label="API status: checking">Checking…</span>
+        <button class="icon-button" id="open-ingest" type="button" aria-label="Add a curated link">
+          <span class="button-icon" aria-hidden="true">+</span>
           <span class="button-text">Add Link</span>
         </button>
-        <button class="icon-button" id="open-playlists" type="button" title="Open playlists" aria-label="Open playlists">
-          <span class="button-icon" aria-hidden="true">+</span>
+        <button class="icon-button" id="open-playlists" type="button" aria-label="Open playlists panel">
+          <span class="button-icon" aria-hidden="true">☰</span>
           <span class="button-text">Playlist</span>
         </button>
-        <button class="icon-button" id="open-feedback" type="button" title="Report a link or request a topic" aria-label="Report a link or request a topic">
+        <button class="icon-button" id="open-feedback" type="button" aria-label="Give feedback or report a link">
           <span class="button-icon" aria-hidden="true">!</span>
           <span class="button-text">Feedback</span>
         </button>
-      </nav>
+      </div>
     </header>
 
-    <main id="app" class="app-shell">
-      <section class="workspace" aria-labelledby="directory-title">
-        <div class="workspace-head">
-          <div>
-            <p class="eyebrow">MVP directory</p>
-            <h1 id="directory-title">High-signal videos for builders</h1>
-          </div>
-          <div class="metric-strip" aria-label="Platform activity">
-            <span><strong id="visible-count">0</strong> visible</span>
-            <span><strong id="saved-count">0</strong> saved</span>
-            <span><strong id="completed-count">0</strong> done</span>
-            <span><strong id="playlist-count">0</strong> playlists</span>
-          </div>
+    <!-- ── Desktop nav rail ─────────────────────────────────── -->
+    <nav class="nav-rail" id="nav-rail" aria-label="Main navigation">
+      <ul role="list">
+        <li>
+          <button class="nav-item" data-page="home" type="button" aria-current="page" aria-label="Home dashboard">
+            <span class="nav-icon" aria-hidden="true">⌂</span>
+            <span class="nav-label">Home</span>
+          </button>
+        </li>
+        <li>
+          <button class="nav-item" data-page="explore" type="button" aria-label="Explore videos">
+            <span class="nav-icon" aria-hidden="true">⊞</span>
+            <span class="nav-label">Explore</span>
+          </button>
+        </li>
+        <li>
+          <button class="nav-item" data-page="my-learning" type="button" aria-label="My Learning workspace">
+            <span class="nav-icon" aria-hidden="true">◈</span>
+            <span class="nav-label">My Learning</span>
+          </button>
+        </li>
+        <li>
+          <button class="nav-item" data-page="paths" type="button" aria-label="Learning Paths">
+            <span class="nav-icon" aria-hidden="true">⇢</span>
+            <span class="nav-label">Paths</span>
+          </button>
+        </li>
+      </ul>
+
+      <div class="nav-rail-footer">
+        <button class="nav-item nav-item--add" id="nav-add-link" data-page="add-link" type="button" aria-label="Add a curated link">
+          <span class="nav-icon" aria-hidden="true">+</span>
+          <span class="nav-label">Add Link</span>
+        </button>
+        <div class="storage-badge" aria-label="Data storage status">
+          <span class="storage-badge__dot" aria-hidden="true"></span>
+          <span class="storage-badge__text">Saved locally</span>
         </div>
+      </div>
+    </nav>
 
-        <form class="control-surface" id="filter-form" role="search" aria-label="Search and filter videos">
-          <label class="search-field">
-            <span>Search</span>
-            <input id="search-input" name="search" type="search" placeholder="Search React, Docker, AI, design..." autocomplete="off">
-          </label>
+    <!-- ── Main content ──────────────────────────────────────── -->
+    <div class="layout-body">
+      <main id="main-content" class="main-content" aria-label="Main content">
 
-          <div class="filter-grid">
-            <label>
-              <span>Topic</span>
-              <select id="topic-filter" name="topic"></select>
-            </label>
-            <label>
-              <span>Level</span>
-              <select id="level-filter" name="level"></select>
-            </label>
-            <label>
-              <span>Length</span>
-              <select id="duration-filter" name="duration">
-                <option value="all">Any length</option>
-                <option value="short">Under 20 min</option>
-                <option value="medium">20-45 min</option>
-                <option value="long">45+ min</option>
-              </select>
-            </label>
-            <label>
-              <span>Sort</span>
-              <select id="sort-filter" name="sort">
-                <option value="recommended">Recommended</option>
-                <option value="newest">Newest</option>
-                <option value="shortest">Shortest</option>
-                <option value="popular">Most useful</option>
-              </select>
-            </label>
-          </div>
+        <!-- PAGE: Home ─────────────────────────────────────── -->
+        <section id="page-home" class="page" data-page="home" aria-labelledby="home-title">
 
-          <div class="quick-toggles" aria-label="Quick filters">
-            <label>
-              <input id="saved-only" type="checkbox">
-              <span>Saved only</span>
-            </label>
-            <label>
-              <input id="fresh-only" type="checkbox">
-              <span>New this year</span>
-            </label>
-            <label>
-              <input id="unfinished-only" type="checkbox">
-              <span>Unfinished only</span>
-            </label>
-          </div>
-        </form>
-
-        <section class="progress-band" aria-labelledby="progress-title">
-          <div>
-            <p class="eyebrow">Learning pulse</p>
-            <h2 id="progress-title">Your momentum</h2>
-          </div>
-          <div class="progress-content">
-            <div class="progress-track" aria-label="Completed videos progress">
-              <span id="progress-bar"></span>
+          <!-- Welcome -->
+          <div class="home-welcome">
+            <div class="home-welcome__text">
+              <p class="eyebrow">Your workspace</p>
+              <h1 id="home-title" class="home-greeting" id="home-greeting">Good morning</h1>
+              <p class="home-subline" id="home-subline">Ready to continue learning?</p>
             </div>
-            <p id="progress-summary">Mark videos complete to build your learning signal.</p>
+            <button class="primary-button home-resume-btn" id="home-resume-btn" type="button">
+              Resume next lesson
+            </button>
           </div>
-          <button class="ghost-button" id="resume-next" type="button">Resume next</button>
+
+          <!-- Continue Learning -->
+          <section class="home-section" aria-labelledby="continue-title">
+            <div class="section-head">
+              <div>
+                <p class="eyebrow">Pick up where you left off</p>
+                <h2 id="continue-title">Continue Learning</h2>
+              </div>
+            </div>
+            <div id="continue-strip" aria-live="polite"></div>
+          </section>
+
+          <!-- Recommended -->
+          <section class="home-section recommendation-band" aria-labelledby="recommended-title">
+            <div>
+              <p class="eyebrow">Personalised</p>
+              <h2 id="recommended-title">Recommended next</h2>
+            </div>
+            <div class="rail" id="recommendation-rail" aria-live="polite"></div>
+          </section>
+
+          <!-- Progress Snapshot -->
+          <section class="home-section" aria-labelledby="progress-title">
+            <div class="section-head">
+              <div>
+                <p class="eyebrow">Your momentum</p>
+                <h2 id="progress-title">Progress snapshot</h2>
+              </div>
+            </div>
+            <div class="progress-snapshot" id="progress-snapshot" aria-label="Learning progress metrics"></div>
+          </section>
         </section>
 
-        <section class="recommendation-band" aria-labelledby="recommended-title">
-          <div>
-            <p class="eyebrow">Personalized</p>
-            <h2 id="recommended-title">Recommended next</h2>
+        <!-- PAGE: Explore ──────────────────────────────────── -->
+        <section id="page-explore" class="page" data-page="explore" aria-labelledby="explore-title" hidden>
+
+          <div class="workspace-head">
+            <div>
+              <p class="eyebrow">Video directory</p>
+              <h1 id="explore-title">Explore</h1>
+            </div>
+            <div class="metric-strip" aria-label="Directory stats">
+              <span><strong id="visible-count">0</strong> visible</span>
+              <span><strong id="saved-count">0</strong> saved</span>
+              <span><strong id="completed-count">0</strong> done</span>
+              <span><strong id="playlist-count">0</strong> playlists</span>
+            </div>
           </div>
-          <div class="rail" id="recommendation-rail" aria-live="polite"></div>
+
+          <form class="control-surface" id="filter-form" role="search" aria-label="Search and filter videos">
+            <label class="search-field">
+              <span>Search</span>
+              <input id="search-input" name="search" type="search"
+                     placeholder="Search React, Docker, AI, design…" autocomplete="off">
+            </label>
+
+            <div class="filter-grid">
+              <label>
+                <span>Topic</span>
+                <select id="topic-filter" name="topic"></select>
+              </label>
+              <label>
+                <span>Level</span>
+                <select id="level-filter" name="level"></select>
+              </label>
+              <label>
+                <span>Length</span>
+                <select id="duration-filter" name="duration">
+                  <option value="all">Any length</option>
+                  <option value="short">Under 20 min</option>
+                  <option value="medium">20–45 min</option>
+                  <option value="long">45+ min</option>
+                </select>
+              </label>
+              <label>
+                <span>Sort</span>
+                <select id="sort-filter" name="sort">
+                  <option value="recommended">Recommended</option>
+                  <option value="newest">Newest</option>
+                  <option value="shortest">Shortest</option>
+                  <option value="popular">Most useful</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="quick-toggles" aria-label="Quick filters">
+              <label>
+                <input id="saved-only" type="checkbox">
+                <span>Saved only</span>
+              </label>
+              <label>
+                <input id="fresh-only" type="checkbox">
+                <span>New this year</span>
+              </label>
+              <label>
+                <input id="unfinished-only" type="checkbox">
+                <span>Unfinished only</span>
+              </label>
+            </div>
+          </form>
+
+          <!-- Progress band (preserved from original) -->
+          <section class="progress-band" aria-labelledby="progress-band-title">
+            <div>
+              <p class="eyebrow">Learning pulse</p>
+              <h2 id="progress-band-title" class="sr-only">Your momentum</h2>
+            </div>
+            <div class="progress-content">
+              <div class="progress-track" role="progressbar"
+                   aria-label="Completed videos progress"
+                   aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                <span id="progress-bar"></span>
+              </div>
+              <p id="progress-summary">Mark videos complete to build your learning signal.</p>
+            </div>
+            <button class="ghost-button" id="resume-next" type="button">Resume next</button>
+          </section>
+
+          <!-- Results -->
+          <section aria-labelledby="results-title">
+            <div class="section-head">
+              <h2 id="results-title">All videos</h2>
+              <p id="result-summary" aria-live="polite" aria-atomic="true">Loading curated resources…</p>
+            </div>
+            <div class="video-grid" id="video-grid" role="list" aria-label="Video catalogue"></div>
+            <p class="empty-state" id="empty-state" hidden role="status">
+              No videos match those filters. Try a broader topic or remove a filter.
+            </p>
+          </section>
         </section>
 
-        <section aria-labelledby="results-title">
-          <div class="section-head">
-            <h2 id="results-title">Video directory</h2>
-            <p id="result-summary" aria-live="polite">Loading curated resources...</p>
+        <!-- PAGE: My Learning ──────────────────────────────── -->
+        <section id="page-my-learning" class="page" data-page="my-learning" aria-labelledby="my-learning-title" hidden>
+          <div class="workspace-head">
+            <div>
+              <p class="eyebrow">Your personal workspace</p>
+              <h1 id="my-learning-title">My Learning</h1>
+            </div>
           </div>
-          <div class="video-grid" id="video-grid"></div>
-          <p class="empty-state" id="empty-state" hidden>No videos match those filters yet. Try a broader topic or request one from Feedback.</p>
-        </section>
-      </section>
 
+          <!-- Tab strip -->
+          <div class="tab-strip" role="tablist" aria-label="My Learning sections">
+            <button class="tab-btn" role="tab" data-tab="continue" aria-selected="true" id="tab-continue" aria-controls="tabpanel-continue">Continue</button>
+            <button class="tab-btn" role="tab" data-tab="saved" aria-selected="false" id="tab-saved" aria-controls="tabpanel-saved">Saved</button>
+            <button class="tab-btn" role="tab" data-tab="playlists" aria-selected="false" id="tab-playlists" aria-controls="tabpanel-playlists">Playlists</button>
+            <button class="tab-btn" role="tab" data-tab="completed" aria-selected="false" id="tab-completed" aria-controls="tabpanel-completed">Completed</button>
+            <button class="tab-btn" role="tab" data-tab="notes" aria-selected="false" id="tab-notes" aria-controls="tabpanel-notes">Notes</button>
+          </div>
+
+          <!-- Continue tab -->
+          <div id="tabpanel-continue" role="tabpanel" aria-labelledby="tab-continue" class="tab-panel">
+            <div id="my-continue-strip" aria-live="polite"></div>
+          </div>
+
+          <!-- Saved tab -->
+          <div id="tabpanel-saved" role="tabpanel" aria-labelledby="tab-saved" class="tab-panel" hidden>
+            <div id="my-saved-grid" class="video-grid" role="list" aria-label="Saved videos"></div>
+            <p class="empty-state" id="my-saved-empty" hidden>
+              You haven't saved any videos yet. Click the save button on any video card.
+            </p>
+          </div>
+
+          <!-- Playlists tab -->
+          <div id="tabpanel-playlists" role="tabpanel" aria-labelledby="tab-playlists" class="tab-panel" hidden>
+            <div id="my-playlists-grid" class="playlist-card-grid" aria-label="Your playlists"></div>
+            <p class="empty-state" id="my-playlists-empty" hidden>
+              Create a playlist from the Playlists panel, or add a video to "Save for Later" to get started.
+            </p>
+          </div>
+
+          <!-- Completed tab -->
+          <div id="tabpanel-completed" role="tabpanel" aria-labelledby="tab-completed" class="tab-panel" hidden>
+            <div id="my-completed-grid" class="video-grid" role="list" aria-label="Completed videos"></div>
+            <p class="empty-state" id="my-completed-empty" hidden>
+              No completed videos yet. Mark any video done to track your progress.
+            </p>
+          </div>
+
+          <!-- Notes tab -->
+          <div id="tabpanel-notes" role="tabpanel" aria-labelledby="tab-notes" class="tab-panel" hidden>
+            <label class="notes-search-label" for="notes-search">
+              <span>Search notes</span>
+              <input id="notes-search" type="search" placeholder="Search your notes…" autocomplete="off">
+            </label>
+            <div id="notes-list" aria-live="polite"></div>
+            <p class="empty-state" id="notes-empty" hidden>
+              No notes yet. Open any video and write a note to capture key takeaways.
+            </p>
+          </div>
+        </section>
+
+        <!-- PAGE: Learning Paths ───────────────────────────── -->
+        <section id="page-paths" class="page" data-page="paths" aria-labelledby="paths-title" hidden>
+          <div class="workspace-head">
+            <div>
+              <p class="eyebrow">Ordered learning sequences</p>
+              <h1 id="paths-title">Learning Paths</h1>
+            </div>
+            <button class="primary-button" id="create-path-btn" type="button">New path</button>
+          </div>
+          <div id="paths-grid" class="playlist-card-grid" aria-label="Learning paths"></div>
+          <p class="empty-state" id="paths-empty" hidden>
+            No learning paths yet. Create one to build an ordered sequence of videos toward a goal.
+          </p>
+        </section>
+
+      </main>
+
+      <!-- ── Desktop playlist side panel ──────────────────── -->
       <aside class="side-panel" id="playlist-panel" aria-labelledby="playlist-title">
         <div class="panel-head">
           <div>
             <p class="eyebrow">Learning queue</p>
             <h2 id="playlist-title">Playlists</h2>
           </div>
-          <button class="ghost-button panel-close" id="close-playlists" type="button">Close</button>
+          <button class="ghost-button panel-close" id="close-playlists" type="button" aria-label="Close playlists panel">Close</button>
         </div>
 
-        <form class="inline-form" id="playlist-form">
+        <form class="inline-form" id="playlist-form" aria-label="Create new playlist">
           <label>
             <span>New playlist</span>
-            <input id="playlist-name" type="text" maxlength="40" placeholder="e.g. Interview prep">
+            <input id="playlist-name" type="text" maxlength="40" placeholder="e.g. Interview prep" aria-label="New playlist name">
           </label>
           <button class="primary-button" type="submit">Create</button>
         </form>
 
         <div class="playlist-tabs" id="playlist-tabs" role="tablist" aria-label="Playlists"></div>
-        <ol class="playlist-items" id="playlist-items"></ol>
+        <ol class="playlist-items" id="playlist-items" aria-label="Playlist videos"></ol>
       </aside>
-    </main>
+    </div>
 
-    <dialog class="video-dialog" id="video-dialog" aria-labelledby="detail-title">
+    <!-- ── Mobile bottom nav ─────────────────────────────────── -->
+    <nav class="bottom-bar" id="bottom-bar" aria-label="Main navigation">
+      <button class="bottom-nav-item" data-page="home" type="button" aria-label="Home" aria-current="page">
+        <span class="bottom-nav-icon" aria-hidden="true">⌂</span>
+        <span class="bottom-nav-label">Home</span>
+      </button>
+      <button class="bottom-nav-item" data-page="explore" type="button" aria-label="Explore">
+        <span class="bottom-nav-icon" aria-hidden="true">⊞</span>
+        <span class="bottom-nav-label">Explore</span>
+      </button>
+      <button class="bottom-nav-item bottom-nav-fab" id="mobile-add-btn" type="button"
+              aria-label="Add a curated link">
+        <span class="bottom-nav-icon fab-icon" aria-hidden="true">+</span>
+      </button>
+      <button class="bottom-nav-item" data-page="my-learning" type="button" aria-label="My Learning">
+        <span class="bottom-nav-icon" aria-hidden="true">◈</span>
+        <span class="bottom-nav-label">My Learning</span>
+      </button>
+      <button class="bottom-nav-item" data-page="paths" type="button" aria-label="Learning Paths">
+        <span class="bottom-nav-icon" aria-hidden="true">⇢</span>
+        <span class="bottom-nav-label">Paths</span>
+      </button>
+    </nav>
+
+    <!-- ── Toast region ──────────────────────────────────────── -->
+    <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="false" role="status"></div>
+
+    <!-- ── Video detail dialog ───────────────────────────────── -->
+    <dialog class="video-dialog" id="video-dialog" aria-labelledby="detail-title" aria-modal="true">
       <form method="dialog" class="detail-card" id="detail-form">
         <div class="panel-head">
           <div>
             <p class="eyebrow" id="detail-meta">Video details</p>
             <h2 id="detail-title">Selected video</h2>
           </div>
-          <button class="ghost-button" id="close-detail" type="button">Close</button>
+          <button class="ghost-button" id="close-detail" type="button" aria-label="Close video details">✕ Close</button>
         </div>
 
         <img class="detail-thumb" id="detail-thumb" alt="" width="960" height="540" loading="lazy" decoding="async">
-        <p class="detail-description" id="detail-description"></p>
 
-        <div class="detail-stats" aria-label="Video details">
-          <span id="detail-duration">0m</span>
-          <span id="detail-level">Level</span>
-          <span id="detail-topic">Topic</span>
+        <div class="detail-stats" aria-label="Video metadata">
+          <span id="detail-duration" aria-label="Duration">0m</span>
+          <span id="detail-level" aria-label="Level">Level</span>
+          <span id="detail-topic" aria-label="Topic">Topic</span>
         </div>
 
-        <label>
-          <span>Private note</span>
-          <textarea id="detail-note" rows="4" maxlength="500" placeholder="Capture the takeaway, timestamp, or next action."></textarea>
-        </label>
+        <p class="detail-description" id="detail-description"></p>
 
+        <!-- Sticky action strip -->
+        <div class="detail-primary-actions">
+          <a class="primary-link" id="detail-open" target="_blank" rel="noreferrer noopener"
+             aria-label="Open video in new tab">▶ Open video</a>
+          <button class="ghost-button" id="detail-save" type="button" aria-pressed="false">Save</button>
+        </div>
+
+        <!-- Secondary actions -->
         <div class="detail-actions">
-          <a class="primary-link" id="detail-open" target="_blank" rel="noreferrer noopener">Open video</a>
-          <button class="ghost-button" id="detail-save" type="button">Save</button>
-          <button class="ghost-button" id="detail-complete" type="button">Mark complete</button>
+          <button class="ghost-button" id="detail-complete" type="button" aria-pressed="false">Mark complete</button>
           <button class="ghost-button" id="detail-add" type="button">Add to playlist</button>
           <button class="ghost-button" id="detail-report" type="button">Report link</button>
         </div>
+
+        <label>
+          <span>Private note <small>(saved locally)</small></span>
+          <textarea id="detail-note" rows="3" maxlength="500"
+                    placeholder="Capture the takeaway, timestamp, or next action."></textarea>
+        </label>
+
+        <p class="storage-notice" aria-label="Storage status">
+          <span aria-hidden="true">🔒</span> Note saved locally on this browser only.
+        </p>
       </form>
     </dialog>
 
-    <dialog class="ingest-dialog" id="ingest-dialog" aria-labelledby="ingest-title">
-      <form method="dialog" class="dialog-card" id="ingest-form">
+    <!-- ── Add Link dialog ───────────────────────────────────── -->
+    <dialog class="ingest-dialog" id="ingest-dialog" aria-labelledby="ingest-title" aria-modal="true">
+      <form method="dialog" class="dialog-card" id="ingest-form" novalidate>
         <div class="panel-head">
           <div>
             <p class="eyebrow">Curator mode</p>
-            <h2 id="ingest-title">Add a video link</h2>
+            <h2 id="ingest-title">Add a learning resource</h2>
           </div>
-          <button class="ghost-button" id="close-ingest" type="button">Close</button>
+          <button class="ghost-button" id="close-ingest" type="button" aria-label="Close add link form">✕</button>
+        </div>
+
+        <div class="ingest-storage-notice">
+          <span aria-hidden="true">ℹ</span>
+          Added resources are stored locally in this browser and appear immediately in Explore.
         </div>
 
         <label>
-          <span>Title</span>
-          <input id="ingest-title-input" type="text" maxlength="80" placeholder="e.g. Practical TypeScript Patterns" required>
+          <span>URL <span class="required-mark" aria-hidden="true">*</span></span>
+          <input id="ingest-url" type="url" placeholder="https://…" required
+                 aria-required="true" aria-describedby="ingest-url-error">
+          <span id="ingest-url-error" class="field-error" role="alert" hidden></span>
         </label>
+
+        <!-- Thumbnail preview -->
+        <div class="ingest-thumb-preview" id="ingest-thumb-preview" hidden aria-hidden="true">
+          <img id="ingest-thumb-img" alt="" width="320" height="180" loading="lazy">
+        </div>
+
         <label>
-          <span>URL</span>
-          <input id="ingest-url" type="url" placeholder="https://..." required>
+          <span>Title <span class="required-mark" aria-hidden="true">*</span></span>
+          <input id="ingest-title-input" type="text" maxlength="80"
+                 placeholder="e.g. Practical TypeScript Patterns" required
+                 aria-required="true" aria-describedby="ingest-title-error">
+          <span id="ingest-title-error" class="field-error" role="alert" hidden></span>
         </label>
+
         <div class="ingest-grid">
           <label>
-            <span>Topic</span>
-            <input id="ingest-topic" type="text" maxlength="30" placeholder="Frontend" required>
+            <span>Topic <span class="required-mark" aria-hidden="true">*</span></span>
+            <input id="ingest-topic" type="text" maxlength="30" placeholder="Frontend" required aria-required="true">
           </label>
           <label>
-            <span>Level</span>
-            <select id="ingest-level" required>
+            <span>Level <span class="required-mark" aria-hidden="true">*</span></span>
+            <select id="ingest-level" required aria-required="true">
               <option>Beginner</option>
               <option>Intermediate</option>
               <option>Advanced</option>
             </select>
           </label>
           <label>
-            <span>Minutes</span>
-            <input id="ingest-duration" type="number" min="1" max="240" value="20" required>
+            <span>Minutes <span class="required-mark" aria-hidden="true">*</span></span>
+            <input id="ingest-duration" type="number" min="1" max="240" value="20" required aria-required="true">
           </label>
           <label>
-            <span>Year</span>
-            <input id="ingest-year" type="number" min="2020" max="2030" value="2026" required>
+            <span>Year <span class="required-mark" aria-hidden="true">*</span></span>
+            <input id="ingest-year" type="number" min="2020" max="2030" value="2026" required aria-required="true">
           </label>
         </div>
+
         <label>
-          <span>Description</span>
-          <textarea id="ingest-description" rows="3" maxlength="180" placeholder="What makes this worth watching?" required></textarea>
+          <span>Description <span class="required-mark" aria-hidden="true">*</span></span>
+          <textarea id="ingest-description" rows="3" maxlength="180"
+                    placeholder="What makes this worth watching?" required aria-required="true"></textarea>
         </label>
+
         <label>
-          <span>Tags</span>
+          <span>Tags <small>(comma-separated, optional)</small></span>
           <input id="ingest-tags" type="text" maxlength="80" placeholder="React, Performance, UX">
         </label>
+
         <button class="primary-button" value="submit" type="submit">Add to directory</button>
       </form>
     </dialog>
 
-    <dialog class="feedback-dialog" id="feedback-dialog" aria-labelledby="feedback-title">
+    <!-- ── Feedback dialog ───────────────────────────────────── -->
+    <dialog class="feedback-dialog" id="feedback-dialog" aria-labelledby="feedback-title" aria-modal="true">
       <form method="dialog" class="dialog-card" id="feedback-form">
         <div class="panel-head">
           <div>
             <p class="eyebrow">Community maintenance</p>
             <h2 id="feedback-title">Report or request</h2>
           </div>
-          <button class="ghost-button" id="close-feedback" type="button">Close</button>
+          <button class="ghost-button" id="close-feedback" type="button" aria-label="Close feedback form">✕</button>
         </div>
 
         <label>
           <span>Type</span>
-          <select id="feedback-type" required>
+          <select id="feedback-type" required aria-required="true">
             <option value="broken">Report broken link</option>
             <option value="topic">Request topic</option>
             <option value="quality">Suggest better resource</option>
           </select>
         </label>
+
         <label>
-          <span>Message</span>
-          <textarea id="feedback-message" rows="4" maxlength="260" placeholder="Tell the curator what needs attention." required></textarea>
+          <span>Message <small>(max 260 characters)</small></span>
+          <textarea id="feedback-message" rows="4" maxlength="260"
+                    placeholder="Tell the curator what needs attention." required
+                    aria-required="true" aria-describedby="feedback-char-count"></textarea>
+          <span id="feedback-char-count" class="char-count" aria-live="polite">0 / 260</span>
         </label>
+
         <button class="primary-button" value="submit" type="submit">Send feedback</button>
+
+        <p class="storage-notice">
+          <span aria-hidden="true">🔒</span> Feedback is saved locally until backend sync is available.
+        </p>
       </form>
     </dialog>
 
+    <!-- ── Video card template ───────────────────────────────── -->
     <template id="video-card-template">
-      <article class="video-card">
+      <article class="video-card" role="listitem">
         <a class="thumb-link" target="_blank" rel="noreferrer noopener">
           <img class="thumb" alt="" width="480" height="270" loading="lazy" decoding="async">
-          <span class="duration-pill"></span>
+          <span class="duration-pill" aria-hidden="true"></span>
         </a>
         <div class="card-body">
           <div class="card-meta">
@@ -282,17 +533,18 @@
           </div>
           <h3></h3>
           <p class="description"></p>
-          <div class="tag-row"></div>
+          <div class="tag-row" aria-label="Tags"></div>
           <div class="card-actions">
-            <button class="save-button" type="button"></button>
+            <button class="save-button" type="button" aria-pressed="false"></button>
             <button class="playlist-button" type="button">Add</button>
             <button class="details-button" type="button">Details</button>
-            <button class="complete-button" type="button">Done</button>
-            <button class="reaction-button" data-reaction="up" type="button" title="Mark useful">Useful</button>
-            <button class="reaction-button" data-reaction="down" type="button" title="Mark less useful">Skip</button>
+            <button class="complete-button" type="button" aria-pressed="false">Done</button>
+            <button class="reaction-button" data-reaction="up" type="button" title="Mark useful" aria-pressed="false">Useful</button>
+            <button class="reaction-button" data-reaction="down" type="button" title="Skip this" aria-pressed="false">Skip</button>
           </div>
         </div>
       </article>
     </template>
+
   </body>
 </html>

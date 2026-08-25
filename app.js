@@ -1,3 +1,10 @@
+/* ============================================================
+   get2learn — Application
+   Phases 1-9: Navigation, Home, Explore, My Learning,
+                Cards, Drawer, Toasts, Add Link
+   ============================================================ */
+
+/* ── CURATED VIDEO CATALOGUE ────────────────────────────────── */
 const curatedVideos = [
   {
     id: "next-app-router",
@@ -169,104 +176,176 @@ const curatedVideos = [
   }
 ];
 
+/* ── LOCALSTORAGE KEYS (additive — original keys preserved) ─── */
 const storageKeys = {
-  saved: "g2l.saved",
-  reactions: "g2l.reactions",
-  playlists: "g2l.playlists",
-  activePlaylist: "g2l.activePlaylist",
-  feedback: "g2l.feedback",
-  completed: "g2l.completed",
-  notes: "g2l.notes",
-  customVideos: "g2l.customVideos"
+  saved:         "g2l.saved",
+  reactions:     "g2l.reactions",
+  playlists:     "g2l.playlists",
+  activePlaylist:"g2l.activePlaylist",
+  feedback:      "g2l.feedback",
+  completed:     "g2l.completed",
+  notes:         "g2l.notes",
+  customVideos:  "g2l.customVideos",
+  // New additive keys
+  activeNav:     "g2l.activeNav",
+  activeMyTab:   "g2l.activeMyTab",
+  paths:         "g2l.paths"
 };
 
+/* ── STATE ──────────────────────────────────────────────────── */
 const state = {
-  query: "",
-  topic: "all",
-  level: "all",
-  duration: "all",
-  sort: "recommended",
-  savedOnly: false,
-  freshOnly: false,
+  // Filter state
+  query:          "",
+  topic:          "all",
+  level:          "all",
+  duration:       "all",
+  sort:           "recommended",
+  savedOnly:      false,
+  freshOnly:      false,
   unfinishedOnly: false,
-  apiMode: "checking",
-  remoteVideos: [],
-  saved: readSet(storageKeys.saved),
-  completed: readSet(storageKeys.completed),
-  notes: readJson(storageKeys.notes, {}),
-  customVideos: readJson(storageKeys.customVideos, []),
-  reactions: readJson(storageKeys.reactions, {}),
-  playlists: readJson(storageKeys.playlists, [
+
+  // API
+  apiMode:        "checking",
+  remoteVideos:   [],
+
+  // Persisted user state
+  saved:          readSet(storageKeys.saved),
+  completed:      readSet(storageKeys.completed),
+  notes:          readJson(storageKeys.notes, {}),
+  customVideos:   readJson(storageKeys.customVideos, []),
+  reactions:      readJson(storageKeys.reactions, {}),
+  playlists:      readJson(storageKeys.playlists, [
     { id: "save-later", name: "Save for Later", items: [] }
   ]),
   activePlaylist: localStorage.getItem(storageKeys.activePlaylist) || "save-later",
-  activeVideoId: ""
+  paths:          readJson(storageKeys.paths, []),
+
+  // Navigation state
+  activePage:     localStorage.getItem(storageKeys.activeNav) || "home",
+  activeMyTab:    localStorage.getItem(storageKeys.activeMyTab) || "continue",
+
+  // UI state
+  activeVideoId:  ""
 };
 
+/* ── DOM REFERENCES ─────────────────────────────────────────── */
 const els = {
-  search: document.querySelector("#search-input"),
-  topic: document.querySelector("#topic-filter"),
-  level: document.querySelector("#level-filter"),
-  duration: document.querySelector("#duration-filter"),
-  sort: document.querySelector("#sort-filter"),
-  savedOnly: document.querySelector("#saved-only"),
-  freshOnly: document.querySelector("#fresh-only"),
+  // Navigation
+  navItems:       document.querySelectorAll(".nav-item[data-page]"),
+  bottomNavItems: document.querySelectorAll(".bottom-nav-item[data-page]"),
+  pages:          document.querySelectorAll(".page"),
+
+  // Home
+  homeGreeting:   document.querySelector("#home-greeting"),
+  homeSubline:    document.querySelector("#home-subline"),
+  homeResumeBtn:  document.querySelector("#home-resume-btn"),
+  continueStrip:  document.querySelector("#continue-strip"),
+  recommendRail:  document.querySelector("#recommendation-rail"),
+  progressSnap:   document.querySelector("#progress-snapshot"),
+
+  // Explore
+  search:         document.querySelector("#search-input"),
+  topic:          document.querySelector("#topic-filter"),
+  level:          document.querySelector("#level-filter"),
+  duration:       document.querySelector("#duration-filter"),
+  sort:           document.querySelector("#sort-filter"),
+  savedOnly:      document.querySelector("#saved-only"),
+  freshOnly:      document.querySelector("#fresh-only"),
   unfinishedOnly: document.querySelector("#unfinished-only"),
-  grid: document.querySelector("#video-grid"),
-  template: document.querySelector("#video-card-template"),
-  visibleCount: document.querySelector("#visible-count"),
-  savedCount: document.querySelector("#saved-count"),
+  grid:           document.querySelector("#video-grid"),
+  template:       document.querySelector("#video-card-template"),
+  visibleCount:   document.querySelector("#visible-count"),
+  savedCount:     document.querySelector("#saved-count"),
   completedCount: document.querySelector("#completed-count"),
-  playlistCount: document.querySelector("#playlist-count"),
-  summary: document.querySelector("#result-summary"),
-  emptyState: document.querySelector("#empty-state"),
-  rail: document.querySelector("#recommendation-rail"),
-  progressBar: document.querySelector("#progress-bar"),
-  progressSummary: document.querySelector("#progress-summary"),
-  resumeNext: document.querySelector("#resume-next"),
-  apiStatus: document.querySelector("#api-status"),
-  playlistPanel: document.querySelector("#playlist-panel"),
-  openIngest: document.querySelector("#open-ingest"),
-  openPlaylists: document.querySelector("#open-playlists"),
+  playlistCount:  document.querySelector("#playlist-count"),
+  summary:        document.querySelector("#result-summary"),
+  emptyState:     document.querySelector("#empty-state"),
+  rail:           document.querySelector("#recommendation-rail"),
+  progressBar:    document.querySelector("#progress-bar"),
+  progressSummary:document.querySelector("#progress-summary"),
+  progressTrack:  document.querySelector(".progress-track"),
+  resumeNext:     document.querySelector("#resume-next"),
+  apiStatus:      document.querySelector("#api-status"),
+
+  // Playlist panel
+  playlistPanel:  document.querySelector("#playlist-panel"),
+  openPlaylists:  document.querySelector("#open-playlists"),
   closePlaylists: document.querySelector("#close-playlists"),
-  playlistForm: document.querySelector("#playlist-form"),
-  playlistName: document.querySelector("#playlist-name"),
-  playlistTabs: document.querySelector("#playlist-tabs"),
-  playlistItems: document.querySelector("#playlist-items"),
-  videoDialog: document.querySelector("#video-dialog"),
-  closeDetail: document.querySelector("#close-detail"),
-  detailMeta: document.querySelector("#detail-meta"),
-  detailTitle: document.querySelector("#detail-title"),
-  detailThumb: document.querySelector("#detail-thumb"),
+  playlistForm:   document.querySelector("#playlist-form"),
+  playlistName:   document.querySelector("#playlist-name"),
+  playlistTabs:   document.querySelector("#playlist-tabs"),
+  playlistItems:  document.querySelector("#playlist-items"),
+
+  // Video drawer
+  videoDialog:    document.querySelector("#video-dialog"),
+  closeDetail:    document.querySelector("#close-detail"),
+  detailMeta:     document.querySelector("#detail-meta"),
+  detailTitle:    document.querySelector("#detail-title"),
+  detailThumb:    document.querySelector("#detail-thumb"),
   detailDescription: document.querySelector("#detail-description"),
   detailDuration: document.querySelector("#detail-duration"),
-  detailLevel: document.querySelector("#detail-level"),
-  detailTopic: document.querySelector("#detail-topic"),
-  detailNote: document.querySelector("#detail-note"),
-  detailOpen: document.querySelector("#detail-open"),
-  detailSave: document.querySelector("#detail-save"),
+  detailLevel:    document.querySelector("#detail-level"),
+  detailTopic:    document.querySelector("#detail-topic"),
+  detailNote:     document.querySelector("#detail-note"),
+  detailStats:    document.querySelector(".detail-stats"),
+  detailOpen:     document.querySelector("#detail-open"),
+  detailSave:     document.querySelector("#detail-save"),
   detailComplete: document.querySelector("#detail-complete"),
-  detailAdd: document.querySelector("#detail-add"),
-  detailReport: document.querySelector("#detail-report"),
-  ingestDialog: document.querySelector("#ingest-dialog"),
-  ingestForm: document.querySelector("#ingest-form"),
-  closeIngest: document.querySelector("#close-ingest"),
-  ingestTitle: document.querySelector("#ingest-title-input"),
-  ingestUrl: document.querySelector("#ingest-url"),
-  ingestTopic: document.querySelector("#ingest-topic"),
-  ingestLevel: document.querySelector("#ingest-level"),
+  detailAdd:      document.querySelector("#detail-add"),
+  detailReport:   document.querySelector("#detail-report"),
+
+  // Add Link dialog
+  ingestDialog:   document.querySelector("#ingest-dialog"),
+  ingestForm:     document.querySelector("#ingest-form"),
+  closeIngest:    document.querySelector("#close-ingest"),
+  ingestTitle:    document.querySelector("#ingest-title-input"),
+  ingestUrl:      document.querySelector("#ingest-url"),
+  ingestTopic:    document.querySelector("#ingest-topic"),
+  ingestLevel:    document.querySelector("#ingest-level"),
   ingestDuration: document.querySelector("#ingest-duration"),
-  ingestYear: document.querySelector("#ingest-year"),
+  ingestYear:     document.querySelector("#ingest-year"),
   ingestDescription: document.querySelector("#ingest-description"),
-  ingestTags: document.querySelector("#ingest-tags"),
+  ingestTags:     document.querySelector("#ingest-tags"),
+  ingestThumbPreview: document.querySelector("#ingest-thumb-preview"),
+  ingestThumbImg: document.querySelector("#ingest-thumb-img"),
+
+  // Feedback dialog
   feedbackDialog: document.querySelector("#feedback-dialog"),
-  feedbackForm: document.querySelector("#feedback-form"),
-  feedbackType: document.querySelector("#feedback-type"),
-  feedbackMessage: document.querySelector("#feedback-message"),
-  closeFeedback: document.querySelector("#close-feedback"),
-  openFeedback: document.querySelector("#open-feedback")
+  feedbackForm:   document.querySelector("#feedback-form"),
+  feedbackType:   document.querySelector("#feedback-type"),
+  feedbackMessage:document.querySelector("#feedback-message"),
+  feedbackCharCount: document.querySelector("#feedback-char-count"),
+  closeFeedback:  document.querySelector("#close-feedback"),
+  openFeedback:   document.querySelector("#open-feedback"),
+
+  // My Learning
+  tabBtns:        document.querySelectorAll(".tab-btn"),
+  tabPanels:      document.querySelectorAll(".tab-panel"),
+  myContinueStrip:document.querySelector("#my-continue-strip"),
+  mySavedGrid:    document.querySelector("#my-saved-grid"),
+  myPlaylistsGrid:document.querySelector("#my-playlists-grid"),
+  myCompletedGrid:document.querySelector("#my-completed-grid"),
+  notesList:      document.querySelector("#notes-list"),
+  notesSearch:    document.querySelector("#notes-search"),
+  mySavedEmpty:   document.querySelector("#my-saved-empty"),
+  myPlaylistsEmpty:document.querySelector("#my-playlists-empty"),
+  myCompletedEmpty:document.querySelector("#my-completed-empty"),
+  notesEmpty:     document.querySelector("#notes-empty"),
+
+  // Learning Paths
+  pathsGrid:      document.querySelector("#paths-grid"),
+  pathsEmpty:     document.querySelector("#paths-empty"),
+  createPathBtn:  document.querySelector("#create-path-btn"),
+
+  // Toast
+  toastRegion:    document.querySelector("#toast-region"),
+
+  // Mobile
+  mobileAddBtn:   document.querySelector("#mobile-add-btn"),
+  navAddLink:     document.querySelector("#nav-add-link")
 };
 
+/* ── STORAGE HELPERS ────────────────────────────────────────── */
 function readJson(key, fallback) {
   try {
     const value = localStorage.getItem(key);
@@ -281,15 +360,19 @@ function readSet(key) {
 }
 
 function persist() {
-  localStorage.setItem(storageKeys.saved, JSON.stringify([...state.saved]));
-  localStorage.setItem(storageKeys.completed, JSON.stringify([...state.completed]));
-  localStorage.setItem(storageKeys.notes, JSON.stringify(state.notes));
-  localStorage.setItem(storageKeys.customVideos, JSON.stringify(state.customVideos));
-  localStorage.setItem(storageKeys.reactions, JSON.stringify(state.reactions));
-  localStorage.setItem(storageKeys.playlists, JSON.stringify(state.playlists));
+  localStorage.setItem(storageKeys.saved,          JSON.stringify([...state.saved]));
+  localStorage.setItem(storageKeys.completed,      JSON.stringify([...state.completed]));
+  localStorage.setItem(storageKeys.notes,          JSON.stringify(state.notes));
+  localStorage.setItem(storageKeys.customVideos,   JSON.stringify(state.customVideos));
+  localStorage.setItem(storageKeys.reactions,      JSON.stringify(state.reactions));
+  localStorage.setItem(storageKeys.playlists,      JSON.stringify(state.playlists));
   localStorage.setItem(storageKeys.activePlaylist, state.activePlaylist);
+  localStorage.setItem(storageKeys.activeNav,      state.activePage);
+  localStorage.setItem(storageKeys.activeMyTab,    state.activeMyTab);
+  localStorage.setItem(storageKeys.paths,          JSON.stringify(state.paths));
 }
 
+/* ── UTILITY FUNCTIONS ──────────────────────────────────────── */
 function formatDuration(minutes) {
   const hours = Math.floor(minutes / 60);
   const rest = minutes % 60;
@@ -309,6 +392,14 @@ function escapeHtml(value) {
     .replaceAll("'", "&#39;");
 }
 
+function getTimeGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
+}
+
+/* ── CATALOGUE HELPERS ──────────────────────────────────────── */
 function getCatalogVideos() {
   const baseVideos = state.remoteVideos.length ? state.remoteVideos : curatedVideos;
   return [...baseVideos, ...state.customVideos];
@@ -320,25 +411,19 @@ function getVideoById(videoId) {
 
 function apiVideoToLocal(video) {
   return {
-    id: video.id,
-    title: video.title,
-    topic: video.topic,
-    level: video.level,
-    duration: video.duration_minutes,
-    year: video.year,
-    provider: video.provider,
-    url: video.url,
-    thumbnail: video.thumbnail_url || "",
+    id:          video.id,
+    title:       video.title,
+    topic:       video.topic,
+    level:       video.level,
+    duration:    video.duration_minutes,
+    year:        video.year,
+    provider:    video.provider,
+    url:         video.url,
+    thumbnail:   video.thumbnail_url || "",
     description: video.description,
-    tags: video.tags || [],
-    popularity: video.popularity_score || 0
+    tags:        video.tags || [],
+    popularity:  video.popularity_score || 0
   };
-}
-
-function setApiStatus(mode, label) {
-  state.apiMode = mode;
-  els.apiStatus.textContent = label;
-  els.apiStatus.dataset.status = mode;
 }
 
 function getCompletedCount() {
@@ -346,198 +431,1055 @@ function getCompletedCount() {
 }
 
 function seedPlaylistFromSaved() {
-  const saveLater = state.playlists.find((playlist) => playlist.id === "save-later");
+  const saveLater = state.playlists.find((pl) => pl.id === "save-later");
   if (saveLater) {
     saveLater.items = [...new Set([...saveLater.items, ...state.saved])];
   }
 }
 
-function hydrateFilters() {
-  const videos = getCatalogVideos();
-  const topics = ["all", ...[...new Set(videos.map((video) => video.topic))].sort()];
-  const levels = ["all", ...[...new Set(videos.map((video) => video.level))].sort()];
-
-  els.topic.innerHTML = topics
-    .map((topic) => `<option value="${escapeHtml(topic)}">${topic === "all" ? "All topics" : escapeHtml(topic)}</option>`)
-    .join("");
-  els.level.innerHTML = levels
-    .map((level) => `<option value="${escapeHtml(level)}">${level === "all" ? "All levels" : escapeHtml(level)}</option>`)
-    .join("");
-
-  if (!topics.includes(state.topic)) state.topic = "all";
-  if (!levels.includes(state.level)) state.level = "all";
-  els.topic.value = state.topic;
-  els.level.value = state.level;
-}
-
+/* ── RECOMMENDATION SCORING ─────────────────────────────────── */
 function scoreVideo(video) {
   let score = video.popularity;
-  if (state.saved.has(video.id)) score += 18;
-  if (state.completed.has(video.id)) score -= 26;
-  if (state.reactions[video.id] === "up") score += 14;
-  if (state.reactions[video.id] === "down") score -= 22;
+  if (state.saved.has(video.id))           score += 18;
+  if (state.completed.has(video.id))       score -= 26;
+  if (state.reactions[video.id] === "up")  score += 14;
+  if (state.reactions[video.id] === "down")score -= 22;
 
   const preferredTopics = new Set(
     getCatalogVideos()
       .filter((item) => state.saved.has(item.id) || state.reactions[item.id] === "up")
       .map((item) => item.topic)
   );
-
   if (preferredTopics.has(video.topic)) score += 8;
-  if (video.year >= 2026) score += 4;
+  if (video.year >= 2026)               score += 4;
   return score;
 }
 
+function getRecommendationReason(video) {
+  if (state.saved.has(video.id)) return null;
+  const savedTopics = new Set(
+    getCatalogVideos().filter((v) => state.saved.has(v.id)).map((v) => v.topic)
+  );
+  const usefulTopics = new Set(
+    getCatalogVideos().filter((v) => state.reactions[v.id] === "up").map((v) => v.topic)
+  );
+  if (savedTopics.has(video.topic))  return `Because you saved ${video.topic} videos`;
+  if (usefulTopics.has(video.topic)) return `Similar to videos you marked useful`;
+  if (video.duration <= 20)          return "A short lesson to fit your schedule";
+  if (video.year >= 2026)            return "Fresh content added this year";
+  return "Highly rated by learners";
+}
+
+function getResumeCandidate() {
+  const activePlaylist = state.playlists.find((pl) => pl.id === state.activePlaylist);
+  const fromPlaylist = activePlaylist
+    ? activePlaylist.items.map((id) => getVideoById(id)).find((v) => v && !state.completed.has(v.id))
+    : null;
+  const fromRecommended = getCatalogVideos()
+    .filter((v) => !state.completed.has(v.id) && state.reactions[v.id] !== "down")
+    .sort((a, b) => scoreVideo(b) - scoreVideo(a))[0];
+  return fromPlaylist || fromRecommended || null;
+}
+
+/* ── API STATUS ─────────────────────────────────────────────── */
+function setApiStatus(mode, label) {
+  state.apiMode = mode;
+  if (els.apiStatus) {
+    els.apiStatus.textContent = label;
+    els.apiStatus.dataset.status = mode;
+    els.apiStatus.setAttribute("aria-label", `API status: ${label}`);
+  }
+}
+
+/* ── TOAST NOTIFICATIONS ────────────────────────────────────── */
+let _toastCounter = 0;
+
+function showToast(message, undoFn = null, duration = 4000) {
+  const id = `toast-${++_toastCounter}`;
+  const toast = document.createElement("div");
+  toast.className = "toast";
+  toast.id = id;
+  toast.setAttribute("role", "status");
+
+  const msg = document.createElement("span");
+  msg.className = "toast__message";
+  msg.textContent = message;
+  toast.appendChild(msg);
+
+  if (undoFn) {
+    const undoBtn = document.createElement("button");
+    undoBtn.className = "toast__undo";
+    undoBtn.type = "button";
+    undoBtn.textContent = "Undo";
+    undoBtn.addEventListener("click", () => {
+      undoFn();
+      dismissToast(id);
+    });
+    toast.appendChild(undoBtn);
+  }
+
+  const closeBtn = document.createElement("button");
+  closeBtn.className = "toast__close";
+  closeBtn.type = "button";
+  closeBtn.setAttribute("aria-label", "Dismiss notification");
+  closeBtn.textContent = "✕";
+  closeBtn.addEventListener("click", () => dismissToast(id));
+  toast.appendChild(closeBtn);
+
+  els.toastRegion.appendChild(toast);
+
+  // Animate in
+  requestAnimationFrame(() => toast.classList.add("toast--visible"));
+
+  // Auto-dismiss
+  const timer = setTimeout(() => dismissToast(id), duration);
+  toast.dataset.timer = String(timer);
+}
+
+function dismissToast(id) {
+  const toast = document.getElementById(id);
+  if (!toast) return;
+  clearTimeout(Number(toast.dataset.timer));
+  toast.classList.remove("toast--visible");
+  toast.classList.add("toast--hiding");
+  toast.addEventListener("transitionend", () => toast.remove(), { once: true });
+}
+
+/* ── NAVIGATION / ROUTING ───────────────────────────────────── */
+function navigateTo(page) {
+  state.activePage = page;
+  persist();
+
+  // Update page sections
+  els.pages.forEach((section) => {
+    section.hidden = section.dataset.page !== page;
+  });
+
+  // Update nav rail items
+  els.navItems.forEach((item) => {
+    const active = item.dataset.page === page;
+    item.setAttribute("aria-current", active ? "page" : "false");
+    item.classList.toggle("nav-item--active", active);
+  });
+
+  // Update bottom bar items
+  els.bottomNavItems.forEach((item) => {
+    const active = item.dataset.page === page;
+    item.setAttribute("aria-current", active ? "page" : "false");
+    item.classList.toggle("bottom-nav-item--active", active);
+  });
+
+  // Render the target page
+  if (page === "home")        renderHome();
+  if (page === "explore")     { renderVideos(); renderPlaylists(); }
+  if (page === "my-learning") renderMyLearning();
+  if (page === "paths")       renderPaths();
+}
+
+/* ── FILTER HYDRATION ───────────────────────────────────────── */
+function hydrateFilters() {
+  const videos = getCatalogVideos();
+  const topics = ["all", ...[...new Set(videos.map((v) => v.topic))].sort()];
+  const levels = ["all", ...[...new Set(videos.map((v) => v.level))].sort()];
+
+  if (els.topic) {
+    els.topic.innerHTML = topics
+      .map((t) => `<option value="${escapeHtml(t)}">${t === "all" ? "All topics" : escapeHtml(t)}</option>`)
+      .join("");
+  }
+  if (els.level) {
+    els.level.innerHTML = levels
+      .map((l) => `<option value="${escapeHtml(l)}">${l === "all" ? "All levels" : escapeHtml(l)}</option>`)
+      .join("");
+  }
+
+  if (!topics.includes(state.topic)) state.topic = "all";
+  if (!levels.includes(state.level)) state.level = "all";
+  if (els.topic) els.topic.value = state.topic;
+  if (els.level) els.level.value = state.level;
+}
+
+/* ── FILTERING & SORTING ────────────────────────────────────── */
 function getFilteredVideos() {
   const query = normalize(state.query);
-
   return getCatalogVideos()
     .filter((video) => {
       const searchable = normalize([
-        video.title,
-        video.topic,
-        video.level,
-        video.provider,
-        video.description,
-        state.notes[video.id] || "",
-        video.tags.join(" ")
+        video.title, video.topic, video.level, video.provider,
+        video.description, state.notes[video.id] || "", video.tags.join(" ")
       ].join(" "));
-
-      const matchesQuery = !query || searchable.includes(query);
-      const matchesTopic = state.topic === "all" || video.topic === state.topic;
-      const matchesLevel = state.level === "all" || video.level === state.level;
+      const matchesQuery    = !query || searchable.includes(query);
+      const matchesTopic    = state.topic === "all" || video.topic === state.topic;
+      const matchesLevel    = state.level === "all" || video.level === state.level;
       const matchesDuration =
         state.duration === "all" ||
-        (state.duration === "short" && video.duration < 20) ||
+        (state.duration === "short"  && video.duration < 20) ||
         (state.duration === "medium" && video.duration >= 20 && video.duration <= 45) ||
-        (state.duration === "long" && video.duration > 45);
-      const matchesSaved = !state.savedOnly || state.saved.has(video.id);
-      const matchesFresh = !state.freshOnly || video.year >= 2026;
+        (state.duration === "long"   && video.duration > 45);
+      const matchesSaved      = !state.savedOnly      || state.saved.has(video.id);
+      const matchesFresh      = !state.freshOnly      || video.year >= 2026;
       const matchesUnfinished = !state.unfinishedOnly || !state.completed.has(video.id);
-
-      return matchesQuery && matchesTopic && matchesLevel && matchesDuration && matchesSaved && matchesFresh && matchesUnfinished;
+      return matchesQuery && matchesTopic && matchesLevel && matchesDuration &&
+             matchesSaved && matchesFresh && matchesUnfinished;
     })
     .sort((a, b) => {
-      if (state.sort === "newest") return b.year - a.year || b.popularity - a.popularity;
-      if (state.sort === "shortest") return a.duration - b.duration;
-      if (state.sort === "popular") return b.popularity - a.popularity;
+      if (state.sort === "newest")    return b.year - a.year || b.popularity - a.popularity;
+      if (state.sort === "shortest")  return a.duration - b.duration;
+      if (state.sort === "popular")   return b.popularity - a.popularity;
       return scoreVideo(b) - scoreVideo(a);
     });
 }
 
+/* ── VIDEO CARD RENDERING ───────────────────────────────────── */
+function getPrimaryActionLabel(video) {
+  if (state.completed.has(video.id)) return "Review";
+  if (state.notes[video.id])         return "Resume";
+  return "Start learning";
+}
+
 function renderVideoCard(video) {
   const node = els.template.content.firstElementChild.cloneNode(true);
-  const link = node.querySelector(".thumb-link");
-  const image = node.querySelector(".thumb");
-  const title = node.querySelector("h3");
+  const link        = node.querySelector(".thumb-link");
+  const image       = node.querySelector(".thumb");
+  const title       = node.querySelector("h3");
   const description = node.querySelector(".description");
-  const topic = node.querySelector(".topic-pill");
-  const level = node.querySelector(".level-pill");
-  const duration = node.querySelector(".duration-pill");
-  const tags = node.querySelector(".tag-row");
-  const save = node.querySelector(".save-button");
-  const add = node.querySelector(".playlist-button");
-  const details = node.querySelector(".details-button");
-  const complete = node.querySelector(".complete-button");
-  const reactions = node.querySelectorAll(".reaction-button");
+  const topic       = node.querySelector(".topic-pill");
+  const level       = node.querySelector(".level-pill");
+  const duration    = node.querySelector(".duration-pill");
+  const tags        = node.querySelector(".tag-row");
+  const save        = node.querySelector(".save-button");
+  const add         = node.querySelector(".playlist-button");
+  const details     = node.querySelector(".details-button");
+  const complete    = node.querySelector(".complete-button");
+  const reactions   = node.querySelectorAll(".reaction-button");
 
-  node.dataset.completed = String(state.completed.has(video.id));
+  // State
+  const isSaved     = state.saved.has(video.id);
+  const isCompleted = state.completed.has(video.id);
+  const hasNote     = Boolean(state.notes[video.id]);
+
+  node.dataset.completed = String(isCompleted);
+  node.dataset.videoId   = video.id;
+  node.setAttribute("aria-label", video.title);
+
+  // Thumbnail
   link.href = video.url;
-  link.setAttribute("aria-label", `Open ${video.title}`);
-  if (video.thumbnail) image.src = video.thumbnail;
-  image.alt = `${video.title} thumbnail`;
+  link.setAttribute("aria-label", `Open ${escapeHtml(video.title)} in new tab`);
+  if (video.thumbnail) {
+    image.src = video.thumbnail;
+  }
+  image.alt = video.thumbnail ? `${video.title} thumbnail` : "";
   image.onerror = () => {
     image.removeAttribute("src");
     image.alt = "";
   };
-  title.textContent = video.title;
+
+  // Content
+  duration.textContent    = formatDuration(video.duration);
+  title.textContent       = video.title;
   description.textContent = video.description;
-  topic.textContent = video.topic;
-  level.textContent = video.level;
-  duration.textContent = formatDuration(video.duration);
-  tags.innerHTML = video.tags.map((tag) => `<span>${escapeHtml(tag)}</span>`).join("");
-  if (state.notes[video.id]) {
-    tags.insertAdjacentHTML("beforeend", "<span>Note</span>");
-  }
+  topic.textContent       = video.topic;
+  level.textContent       = video.level;
 
-  save.textContent = state.saved.has(video.id) ? "Saved" : "Save";
-  save.setAttribute("aria-pressed", String(state.saved.has(video.id)));
-  save.addEventListener("click", () => toggleSaved(video.id));
+  // Tags
+  let tagsHtml = video.tags.map((tag) => `<span>${escapeHtml(tag)}</span>`).join("");
+  if (hasNote) tagsHtml += `<span title="${escapeHtml(state.notes[video.id])}">✎ Note</span>`;
+  if (isCompleted) tagsHtml += `<span>✓ Done</span>`;
+  tags.innerHTML = tagsHtml;
 
-  add.addEventListener("click", () => addToActivePlaylist(video.id));
+  // Save button
+  save.textContent = isSaved ? "♥ Saved" : "♡ Save";
+  save.setAttribute("aria-pressed", String(isSaved));
+  save.setAttribute("aria-label", isSaved ? `Unsave ${video.title}` : `Save ${video.title}`);
+  save.addEventListener("click", (e) => {
+    e.stopPropagation();
+    toggleSaved(video.id);
+  });
 
+  // Add to playlist
+  add.addEventListener("click", (e) => {
+    e.stopPropagation();
+    addToActivePlaylist(video.id);
+  });
+
+  // Details / primary CTA
+  details.textContent = getPrimaryActionLabel(video);
   details.addEventListener("click", () => openDetail(video.id));
 
-  complete.textContent = state.completed.has(video.id) ? "Done" : "Done";
-  complete.setAttribute("aria-pressed", String(state.completed.has(video.id)));
-  complete.addEventListener("click", () => toggleCompleted(video.id));
+  // Complete toggle
+  complete.textContent = isCompleted ? "✓ Done" : "Done";
+  complete.setAttribute("aria-pressed", String(isCompleted));
+  complete.setAttribute("aria-label", isCompleted ? `Mark ${video.title} incomplete` : `Mark ${video.title} complete`);
+  complete.addEventListener("click", (e) => {
+    e.stopPropagation();
+    toggleCompleted(video.id);
+  });
 
-  reactions.forEach((button) => {
-    const reaction = button.dataset.reaction;
-    button.dataset.active = String(state.reactions[video.id] === reaction);
-    button.addEventListener("click", () => setReaction(video.id, reaction));
+  // Reactions
+  reactions.forEach((btn) => {
+    const reaction = btn.dataset.reaction;
+    const isActive = state.reactions[video.id] === reaction;
+    btn.dataset.active = String(isActive);
+    btn.setAttribute("aria-pressed", String(isActive));
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      setReaction(video.id, reaction);
+    });
   });
 
   return node;
 }
 
+/* ── EXPLORE RENDERING ──────────────────────────────────────── */
 function renderVideos() {
-  const videos = getFilteredVideos();
+  const videos   = getFilteredVideos();
   const fragment = document.createDocumentFragment();
-
   videos.forEach((video) => fragment.appendChild(renderVideoCard(video)));
-  els.grid.replaceChildren(fragment);
-  els.visibleCount.textContent = videos.length;
-  els.summary.textContent = `${videos.length} curated video${videos.length === 1 ? "" : "s"} ready`;
-  els.emptyState.hidden = videos.length > 0;
+  if (els.grid) els.grid.replaceChildren(fragment);
+  if (els.visibleCount)  els.visibleCount.textContent  = videos.length;
+  if (els.summary)       els.summary.textContent       = `${videos.length} video${videos.length === 1 ? "" : "s"} ready`;
+  if (els.emptyState)    els.emptyState.hidden          = videos.length > 0;
   updateCounts();
   renderProgress();
-  renderRecommendations();
 }
 
-function renderRecommendations() {
-  const recommendations = getCatalogVideos()
-    .filter((video) => !state.completed.has(video.id) && state.reactions[video.id] !== "down")
-    .sort((a, b) => scoreVideo(b) - scoreVideo(a))
-    .slice(0, 4);
+function renderProgress() {
+  const total    = getCatalogVideos().length;
+  const done     = getCompletedCount();
+  const percent  = total ? Math.round((done / total) * 100) : 0;
+  const minutes  = getCatalogVideos()
+    .filter((v) => state.completed.has(v.id))
+    .reduce((sum, v) => sum + v.duration, 0);
 
-  if (!recommendations.length) {
-    els.rail.innerHTML = '<p class="empty-state">Your queue is full. Nice momentum.</p>';
+  if (els.progressBar) {
+    els.progressBar.style.width = `${percent}%`;
+    els.progressBar.parentElement?.setAttribute("aria-valuenow", percent);
+  }
+  if (els.progressSummary) {
+    els.progressSummary.textContent = done
+      ? `${done} of ${total} videos completed — ${minutes} minutes banked.`
+      : "Mark videos complete to build your learning signal.";
+  }
+}
+
+function updateCounts() {
+  if (els.savedCount)    els.savedCount.textContent    = [...state.saved].filter((id) => getVideoById(id)).length;
+  if (els.completedCount)els.completedCount.textContent = getCompletedCount();
+  if (els.playlistCount) els.playlistCount.textContent  = state.playlists.length;
+}
+
+/* ── HOME PAGE ──────────────────────────────────────────────── */
+function renderHome() {
+  // Greeting
+  if (els.homeGreeting) els.homeGreeting.textContent = getTimeGreeting();
+
+  const candidate = getResumeCandidate();
+  if (els.homeSubline) {
+    els.homeSubline.textContent = candidate
+      ? `Next up: ${candidate.title}`
+      : "Explore the catalogue to start your journey.";
+  }
+  if (els.homeResumeBtn) {
+    els.homeResumeBtn.textContent = candidate ? "Resume next lesson" : "Explore videos";
+    els.homeResumeBtn.onclick = () => {
+      if (candidate) {
+        openDetail(candidate.id);
+      } else {
+        navigateTo("explore");
+      }
+    };
+  }
+
+  // Continue Learning strip
+  renderContinueStrip(els.continueStrip);
+
+  // Recommendations
+  renderHomeRecommendations();
+
+  // Progress snapshot
+  renderProgressSnapshot();
+}
+
+function renderContinueStrip(container) {
+  if (!container) return;
+  const candidate = getResumeCandidate();
+
+  if (!candidate) {
+    container.innerHTML = `
+      <div class="empty-state">
+        You are all caught up. <button class="link-btn" id="explore-cta-btn" type="button">Explore a new topic →</button>
+      </div>`;
+    container.querySelector("#explore-cta-btn")?.addEventListener("click", () => navigateTo("explore"));
     return;
   }
 
-  els.rail.replaceChildren(
-    ...recommendations.map((video) => {
-      const card = document.createElement("button");
+  const isSaved = state.saved.has(candidate.id);
+  container.innerHTML = `
+    <div class="continue-card">
+      <div class="continue-card__thumb-wrap">
+        <img class="continue-card__thumb" src="${escapeHtml(candidate.thumbnail || "")}"
+             alt="${escapeHtml(candidate.title)} thumbnail"
+             width="320" height="180" loading="lazy" decoding="async"
+             onerror="this.style.display='none'">
+      </div>
+      <div class="continue-card__body">
+        <div class="card-meta">
+          <span class="topic-pill">${escapeHtml(candidate.topic)}</span>
+          <span class="level-pill">${escapeHtml(candidate.level)}</span>
+        </div>
+        <h3 class="continue-card__title">${escapeHtml(candidate.title)}</h3>
+        <p class="continue-card__meta">${escapeHtml(candidate.provider)} · ${formatDuration(candidate.duration)}</p>
+        <div class="continue-card__actions">
+          <button class="primary-button" id="continue-resume-btn" type="button">▶ Resume</button>
+          <button class="ghost-button continue-save-btn" type="button" aria-pressed="${isSaved}"
+                  data-video-id="${escapeHtml(candidate.id)}">
+            ${isSaved ? "♥ Saved" : "♡ Save"}
+          </button>
+        </div>
+      </div>
+    </div>`;
+
+  container.querySelector("#continue-resume-btn")?.addEventListener("click", () => openDetail(candidate.id));
+  container.querySelector(".continue-save-btn")?.addEventListener("click", () => {
+    toggleSaved(candidate.id);
+    renderHome();
+  });
+}
+
+function renderHomeRecommendations() {
+  const container = els.recommendRail;
+  if (!container) return;
+
+  const recs = getCatalogVideos()
+    .filter((v) => !state.completed.has(v.id) && state.reactions[v.id] !== "down")
+    .sort((a, b) => scoreVideo(b) - scoreVideo(a))
+    .slice(0, 5);
+
+  if (!recs.length) {
+    container.innerHTML = `<p class="empty-state">Your queue is full. Nice momentum.</p>`;
+    return;
+  }
+
+  container.replaceChildren(
+    ...recs.map((video) => {
+      const reason = getRecommendationReason(video);
+      const card   = document.createElement("button");
       card.className = "rail-card";
-      card.type = "button";
-      card.innerHTML = `<strong>${escapeHtml(video.title)}</strong><small>${escapeHtml(video.topic)} / ${formatDuration(video.duration)}</small>`;
+      card.type      = "button";
+      card.setAttribute("aria-label", `${video.title} — ${formatDuration(video.duration)}`);
+      card.innerHTML = `
+        <strong>${escapeHtml(video.title)}</strong>
+        <small>${escapeHtml(video.topic)} · ${formatDuration(video.duration)}</small>
+        ${reason ? `<small class="rail-card__reason">${escapeHtml(reason)}</small>` : ""}`;
       card.addEventListener("click", () => openDetail(video.id));
       return card;
     })
   );
 }
 
-function renderProgress() {
-  const total = getCatalogVideos().length;
-  const completed = getCompletedCount();
-  const percent = total ? Math.round((completed / total) * 100) : 0;
-  const completedMinutes = getCatalogVideos()
-    .filter((video) => state.completed.has(video.id))
-    .reduce((sum, video) => sum + video.duration, 0);
+function renderProgressSnapshot() {
+  const container = els.progressSnap;
+  if (!container) return;
 
-  els.progressBar.style.width = `${percent}%`;
-  els.progressSummary.textContent = completed
-    ? `${completed} of ${total} videos completed / ${completedMinutes} minutes banked.`
-    : "Mark videos complete to build your learning signal.";
+  const total   = getCatalogVideos().length;
+  const done    = getCompletedCount();
+  const percent = total ? Math.round((done / total) * 100) : 0;
+  const minutes = getCatalogVideos()
+    .filter((v) => state.completed.has(v.id))
+    .reduce((sum, v) => sum + v.duration, 0);
+  const savedCount  = [...state.saved].filter((id) => getVideoById(id)).length;
+  const pathsActive = state.paths.length;
+
+  container.innerHTML = `
+    <div class="progress-tiles">
+      <div class="progress-tile">
+        <span class="progress-tile__value">${done}</span>
+        <span class="progress-tile__label">Completed</span>
+      </div>
+      <div class="progress-tile">
+        <span class="progress-tile__value">${minutes}m</span>
+        <span class="progress-tile__label">Minutes learned</span>
+      </div>
+      <div class="progress-tile">
+        <span class="progress-tile__value">${savedCount}</span>
+        <span class="progress-tile__label">Saved</span>
+      </div>
+      <div class="progress-tile">
+        <span class="progress-tile__value">${percent}%</span>
+        <span class="progress-tile__label">Completion</span>
+      </div>
+    </div>
+    <div class="progress-track home-progress-track" role="progressbar"
+         aria-label="Overall learning progress"
+         aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}">
+      <span style="width:${percent}%"></span>
+    </div>`;
 }
 
+/* ── MY LEARNING ────────────────────────────────────────────── */
+function renderMyLearning() {
+  activateMyTab(state.activeMyTab);
+}
+
+function activateMyTab(tabId) {
+  state.activeMyTab = tabId;
+  persist();
+
+  els.tabBtns.forEach((btn) => {
+    const active = btn.dataset.tab === tabId;
+    btn.setAttribute("aria-selected", String(active));
+    btn.classList.toggle("tab-btn--active", active);
+  });
+
+  els.tabPanels.forEach((panel) => {
+    panel.hidden = panel.id !== `tabpanel-${tabId}`;
+  });
+
+  if (tabId === "continue")  renderMyContinue();
+  if (tabId === "saved")     renderMySaved();
+  if (tabId === "playlists") renderMyPlaylists();
+  if (tabId === "completed") renderMyCompleted();
+  if (tabId === "notes")     renderNotes("");
+}
+
+function renderMyContinue() {
+  if (els.myContinueStrip) renderContinueStrip(els.myContinueStrip);
+}
+
+function renderMySaved() {
+  const saved = getCatalogVideos().filter((v) => state.saved.has(v.id));
+  if (els.mySavedEmpty) els.mySavedEmpty.hidden = saved.length > 0;
+  if (!els.mySavedGrid) return;
+  const fragment = document.createDocumentFragment();
+  saved.forEach((v) => fragment.appendChild(renderVideoCard(v)));
+  els.mySavedGrid.replaceChildren(fragment);
+}
+
+function renderMyPlaylists() {
+  if (!els.myPlaylistsGrid) return;
+  const fragment = document.createDocumentFragment();
+  state.playlists.forEach((pl) => {
+    const items      = pl.items.map((id) => getVideoById(id)).filter(Boolean);
+    const completed  = items.filter((v) => state.completed.has(v.id)).length;
+    const percent    = items.length ? Math.round((completed / items.length) * 100) : 0;
+    const totalMins  = items.reduce((sum, v) => sum + v.duration, 0);
+    const card       = document.createElement("div");
+    card.className   = "playlist-card";
+    card.innerHTML   = `
+      <div class="playlist-card__header">
+        <h3>${escapeHtml(pl.name)}</h3>
+        <span class="playlist-card__count">${items.length} video${items.length === 1 ? "" : "s"}</span>
+      </div>
+      <p class="playlist-card__meta">${formatDuration(totalMins)} total · ${percent}% complete</p>
+      <div class="playlist-card__bar">
+        <div class="progress-track">
+          <span style="width:${percent}%" role="progressbar"
+                aria-label="${escapeHtml(pl.name)} progress"
+                aria-valuenow="${percent}" aria-valuemin="0" aria-valuemax="100"></span>
+        </div>
+      </div>
+      <div class="playlist-card__actions">
+        <button class="primary-button pl-continue-btn" data-playlist-id="${escapeHtml(pl.id)}" type="button">
+          ${percent === 100 ? "Review" : "Continue"}
+        </button>
+        <button class="ghost-button pl-open-btn" data-playlist-id="${escapeHtml(pl.id)}" type="button">
+          View all
+        </button>
+      </div>`;
+    card.querySelector(".pl-continue-btn")?.addEventListener("click", () => {
+      const next = items.find((v) => !state.completed.has(v.id)) || items[0];
+      if (next) openDetail(next.id);
+    });
+    card.querySelector(".pl-open-btn")?.addEventListener("click", () => {
+      state.activePlaylist = pl.id;
+      persist();
+      // Open the side panel and show this playlist
+      els.playlistPanel?.classList.add("is-open");
+      renderPlaylists();
+    });
+    fragment.appendChild(card);
+  });
+  els.myPlaylistsGrid.replaceChildren(fragment);
+  if (els.myPlaylistsEmpty) els.myPlaylistsEmpty.hidden = state.playlists.length > 0;
+}
+
+function renderMyCompleted() {
+  const completed = getCatalogVideos().filter((v) => state.completed.has(v.id));
+  if (els.myCompletedEmpty) els.myCompletedEmpty.hidden = completed.length > 0;
+  if (!els.myCompletedGrid) return;
+  const fragment = document.createDocumentFragment();
+  completed.forEach((v) => fragment.appendChild(renderVideoCard(v)));
+  els.myCompletedGrid.replaceChildren(fragment);
+}
+
+function renderNotes(query) {
+  if (!els.notesList) return;
+  const q   = normalize(query);
+  const all = Object.entries(state.notes)
+    .map(([id, note]) => ({ id, note, video: getVideoById(id) }))
+    .filter((n) => n.video)
+    .filter((n) => !q || normalize(n.note).includes(q) || normalize(n.video.title).includes(q));
+
+  if (els.notesEmpty) els.notesEmpty.hidden = all.length > 0;
+  if (!all.length) {
+    els.notesList.replaceChildren();
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+  all.forEach(({ id, note, video }) => {
+    const item = document.createElement("div");
+    item.className = "note-item";
+    item.innerHTML = `
+      <div class="note-item__header">
+        <strong class="note-item__title">${escapeHtml(video.title)}</strong>
+        <span class="topic-pill">${escapeHtml(video.topic)}</span>
+      </div>
+      <p class="note-item__text">${escapeHtml(note)}</p>
+      <div class="note-item__actions">
+        <button class="ghost-button note-edit-btn" data-video-id="${escapeHtml(id)}" type="button">Edit</button>
+        <button class="ghost-button note-delete-btn" data-video-id="${escapeHtml(id)}" type="button">Delete</button>
+      </div>`;
+    item.querySelector(".note-edit-btn")?.addEventListener("click", () => openDetail(id));
+    item.querySelector(".note-delete-btn")?.addEventListener("click", () => {
+      const prevNote = state.notes[id];
+      delete state.notes[id];
+      persist();
+      renderNotes(els.notesSearch?.value || "");
+      showToast("Note deleted", () => {
+        state.notes[id] = prevNote;
+        persist();
+        renderNotes(els.notesSearch?.value || "");
+      });
+    });
+    fragment.appendChild(item);
+  });
+  els.notesList.replaceChildren(fragment);
+}
+
+/* ── LEARNING PATHS ─────────────────────────────────────────── */
+function renderPaths() {
+  if (!els.pathsGrid) return;
+  if (els.pathsEmpty) els.pathsEmpty.hidden = state.paths.length > 0;
+  if (!state.paths.length) {
+    els.pathsGrid.replaceChildren();
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+  state.paths.forEach((path) => {
+    const items     = (path.items || []).map((id) => getVideoById(id)).filter(Boolean);
+    const done      = items.filter((v) => state.completed.has(v.id)).length;
+    const percent   = items.length ? Math.round((done / items.length) * 100) : 0;
+    const totalMins = items.reduce((sum, v) => sum + v.duration, 0);
+    const card      = document.createElement("div");
+    card.className  = "playlist-card";
+    card.innerHTML  = `
+      <div class="playlist-card__header">
+        <h3>${escapeHtml(path.name)}</h3>
+        <span class="playlist-card__count">${items.length} lessons</span>
+      </div>
+      ${path.description ? `<p class="playlist-card__description">${escapeHtml(path.description)}</p>` : ""}
+      <p class="playlist-card__meta">${formatDuration(totalMins)} · ${percent}% complete</p>
+      <div class="playlist-card__bar">
+        <div class="progress-track">
+          <span style="width:${percent}%" role="progressbar"
+                aria-label="${escapeHtml(path.name)} progress"
+                aria-valuenow="${percent}" aria-valuemin="0" aria-valuemax="100"></span>
+        </div>
+      </div>
+      <div class="playlist-card__actions">
+        <button class="primary-button path-continue-btn" data-path-id="${escapeHtml(path.id)}" type="button">
+          Continue
+        </button>
+        <button class="ghost-button path-delete-btn" data-path-id="${escapeHtml(path.id)}" type="button">
+          Delete
+        </button>
+      </div>`;
+    card.querySelector(".path-continue-btn")?.addEventListener("click", () => {
+      const next = items.find((v) => !state.completed.has(v.id)) || items[0];
+      if (next) openDetail(next.id);
+    });
+    card.querySelector(".path-delete-btn")?.addEventListener("click", () => {
+      const prev = [...state.paths];
+      state.paths = state.paths.filter((p) => p.id !== path.id);
+      persist();
+      renderPaths();
+      showToast(`"${path.name}" deleted`, () => {
+        state.paths = prev;
+        persist();
+        renderPaths();
+      });
+    });
+    fragment.appendChild(card);
+  });
+  els.pathsGrid.replaceChildren(fragment);
+}
+
+function createPath(name, description = "") {
+  const clean = name.trim();
+  if (!clean) return;
+  const id = `path-${slugify(clean)}-${Date.now()}`;
+  state.paths.push({ id, name: clean, description, items: [] });
+  persist();
+  renderPaths();
+  showToast(`Path "${clean}" created`);
+}
+
+/* ── PLAYLIST RENDERING ─────────────────────────────────────── */
+function renderPlaylists() {
+  seedPlaylistFromSaved();
+  const active = state.playlists.find((pl) => pl.id === state.activePlaylist) || state.playlists[0];
+  if (!active) return;
+  state.activePlaylist = active.id;
+
+  if (els.playlistTabs) {
+    els.playlistTabs.replaceChildren(
+      ...state.playlists.map((pl) => {
+        const tab = document.createElement("button");
+        tab.className = "playlist-tab";
+        tab.type      = "button";
+        tab.setAttribute("role", "tab");
+        tab.textContent = `${pl.name} (${pl.items.length})`;
+        tab.setAttribute("aria-selected", String(pl.id === state.activePlaylist));
+        tab.addEventListener("click", () => {
+          state.activePlaylist = pl.id;
+          persist();
+          renderPlaylists();
+        });
+        return tab;
+      })
+    );
+  }
+
+  const items = active.items.map((id) => getVideoById(id)).filter(Boolean);
+
+  if (els.playlistItems) {
+    if (!items.length) {
+      els.playlistItems.innerHTML = "<li>Add a video from Explore to build this learning queue.</li>";
+      updateCounts();
+      return;
+    }
+
+    els.playlistItems.replaceChildren(
+      ...items.map((video, index) => {
+        const li = document.createElement("li");
+        li.draggable      = true;
+        li.dataset.videoId = video.id;
+        li.innerHTML = `
+          <span class="playlist-item-title">${escapeHtml(video.title)}</span>
+          <div class="playlist-item-actions">
+            <button type="button" data-action="up"     aria-label="Move up">↑</button>
+            <button type="button" data-action="down"   aria-label="Move down">↓</button>
+            <button type="button" data-action="remove" aria-label="Remove from playlist">Remove</button>
+          </div>`;
+        li.addEventListener("dragstart", (e) => e.dataTransfer.setData("text/plain", String(index)));
+        li.addEventListener("dragover",  (e) => e.preventDefault());
+        li.addEventListener("drop",      (e) => {
+          e.preventDefault();
+          const from = Number(e.dataTransfer.getData("text/plain"));
+          movePlaylistItem(active.id, from, index);
+        });
+        li.querySelector("[data-action='up']").addEventListener("click",    () => movePlaylistItem(active.id, index, index - 1));
+        li.querySelector("[data-action='down']").addEventListener("click",  () => movePlaylistItem(active.id, index, index + 1));
+        li.querySelector("[data-action='remove']").addEventListener("click",() => {
+          const prevItems = [...active.items];
+          removeFromPlaylist(active.id, video.id);
+          showToast(`"${video.title}" removed`, () => {
+            active.items = prevItems;
+            persist();
+            renderPlaylists();
+          });
+        });
+        return li;
+      })
+    );
+  }
+  updateCounts();
+}
+
+/* ── STATE MUTATIONS ────────────────────────────────────────── */
+function toggleSaved(videoId) {
+  const video   = getVideoById(videoId);
+  const wasSaved = state.saved.has(videoId);
+  if (wasSaved) {
+    state.saved.delete(videoId);
+    state.playlists.forEach((pl) => {
+      if (pl.id === "save-later") pl.items = pl.items.filter((id) => id !== videoId);
+    });
+    showToast("Removed from Save for Later", () => {
+      state.saved.add(videoId);
+      addToPlaylist("save-later", videoId, false);
+      persist();
+      refreshAll();
+    });
+  } else {
+    state.saved.add(videoId);
+    addToPlaylist("save-later", videoId, false);
+    showToast(`Saved to Save for Later`);
+  }
+  persist();
+  refreshAll();
+}
+
+function toggleCompleted(videoId) {
+  const wasCompleted = state.completed.has(videoId);
+  if (wasCompleted) {
+    state.completed.delete(videoId);
+    showToast("Marked as not complete");
+  } else {
+    state.completed.add(videoId);
+    showToast("Video marked complete ✓");
+  }
+  persist();
+  refreshAll();
+  renderActiveDetail();
+}
+
+function setReaction(videoId, reaction) {
+  state.reactions[videoId] = state.reactions[videoId] === reaction ? "" : reaction;
+  persist();
+  refreshAll();
+  renderActiveDetail();
+}
+
+function addToActivePlaylist(videoId) {
+  addToPlaylist(state.activePlaylist, videoId, true);
+}
+
+function addToPlaylist(playlistId, videoId, rerender) {
+  const playlist = state.playlists.find((pl) => pl.id === playlistId);
+  if (!playlist) return;
+  const alreadyIn = playlist.items.includes(videoId);
+  playlist.items = [...new Set([...playlist.items, videoId])];
+  persist();
+  if (rerender) {
+    renderPlaylists();
+    updateCounts();
+    if (!alreadyIn) showToast(`Added to "${playlist.name}"`);
+  }
+}
+
+function removeFromPlaylist(playlistId, videoId) {
+  const playlist = state.playlists.find((pl) => pl.id === playlistId);
+  if (!playlist) return;
+  playlist.items = playlist.items.filter((id) => id !== videoId);
+  if (playlistId === "save-later") state.saved.delete(videoId);
+  persist();
+  renderPlaylists();
+  renderActiveDetail();
+  if (state.activePage === "explore") renderVideos();
+}
+
+function movePlaylistItem(playlistId, from, to) {
+  const playlist = state.playlists.find((pl) => pl.id === playlistId);
+  if (!playlist || to < 0 || to >= playlist.items.length || from === to) return;
+  const [item] = playlist.items.splice(from, 1);
+  playlist.items.splice(to, 0, item);
+  persist();
+  renderPlaylists();
+}
+
+function createPlaylist(name) {
+  const clean = name.trim();
+  if (!clean) return;
+  const id = `${slugify(clean) || "playlist"}-${Date.now()}`;
+  state.playlists.push({ id, name: clean, items: [] });
+  state.activePlaylist = id;
+  persist();
+  renderPlaylists();
+  showToast(`Playlist "${clean}" created`);
+}
+
+/* ── REFRESH HELPER ─────────────────────────────────────────── */
+function refreshAll() {
+  if (state.activePage === "explore")     { renderVideos(); renderPlaylists(); }
+  if (state.activePage === "home")        renderHome();
+  if (state.activePage === "my-learning") renderMyLearning();
+}
+
+/* ── VIDEO DETAIL DRAWER ────────────────────────────────────── */
+let _previousFocusEl = null;
+
+function openDetail(videoId) {
+  const video = getVideoById(videoId);
+  if (!video) return;
+  state.activeVideoId = videoId;
+  _previousFocusEl    = document.activeElement;
+  renderDetail(video);
+  if (typeof els.videoDialog.showModal === "function") {
+    els.videoDialog.showModal();
+  }
+  // Move focus to close button
+  requestAnimationFrame(() => els.closeDetail?.focus());
+}
+
+function renderActiveDetail() {
+  if (!state.activeVideoId || !els.videoDialog.open) return;
+  const video = getVideoById(state.activeVideoId);
+  if (video) renderDetail(video);
+}
+
+function renderDetail(video) {
+  const isSaved     = state.saved.has(video.id);
+  const isCompleted = state.completed.has(video.id);
+
+  if (els.detailMeta)        els.detailMeta.textContent        = `${video.provider} · ${video.year}`;
+  if (els.detailTitle)       els.detailTitle.textContent       = video.title;
+  if (els.detailDescription) els.detailDescription.textContent = video.description;
+  if (els.detailDuration)    els.detailDuration.textContent    = formatDuration(video.duration);
+  if (els.detailLevel)       els.detailLevel.textContent       = video.level;
+  if (els.detailTopic)       els.detailTopic.textContent       = video.topic;
+  if (els.detailNote)        els.detailNote.value              = state.notes[video.id] || "";
+  if (els.detailOpen) {
+    els.detailOpen.href = video.url;
+    const label = isCompleted ? "▶ Review" : state.notes[video.id] ? "▶ Resume" : "▶ Start learning";
+    els.detailOpen.textContent = label;
+    els.detailOpen.setAttribute("aria-label", `${label} — opens in new tab`);
+  }
+
+  if (els.detailThumb) {
+    if (video.thumbnail) {
+      els.detailThumb.hidden = false;
+      els.detailThumb.src    = video.thumbnail;
+      els.detailThumb.alt    = `${video.title} thumbnail`;
+    } else {
+      els.detailThumb.hidden = true;
+      els.detailThumb.removeAttribute("src");
+      els.detailThumb.alt = "";
+    }
+  }
+
+  if (els.detailSave) {
+    els.detailSave.textContent = isSaved ? "♥ Saved" : "♡ Save";
+    els.detailSave.setAttribute("aria-pressed", String(isSaved));
+  }
+  if (els.detailComplete) {
+    els.detailComplete.textContent = isCompleted ? "✓ Completed" : "Mark complete";
+    els.detailComplete.setAttribute("aria-pressed", String(isCompleted));
+  }
+
+  // Recommendation reason
+  const reason = getRecommendationReason(video);
+  const existingReason = els.videoDialog?.querySelector(".detail-reason");
+  if (existingReason) existingReason.remove();
+  if (reason && els.detailStats) {
+    const reasonEl = document.createElement("p");
+    reasonEl.className = "detail-reason";
+    reasonEl.textContent = `✦ ${reason}`;
+    els.detailStats.insertAdjacentElement("afterend", reasonEl);
+  }
+}
+
+/* ── URL UTILITIES ──────────────────────────────────────────── */
+function extractYouTubeId(url) {
+  try {
+    const parsed = new URL(url);
+    const host   = parsed.hostname.replace("www.", "");
+    if (host === "youtu.be") return parsed.pathname.slice(1).split("/")[0];
+    if (host.endsWith("youtube.com")) {
+      const directId = parsed.searchParams.get("v");
+      if (directId) return directId;
+      const match = parsed.pathname.match(/\/(embed|shorts)\/([A-Za-z0-9_-]{11})/);
+      return match ? match[2] : "";
+    }
+  } catch { return ""; }
+  return "";
+}
+
+function thumbnailFromUrl(url) {
+  const id = extractYouTubeId(url);
+  return id ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg` : "";
+}
+
+function providerFromUrl(url) {
+  try {
+    const host = new URL(url).hostname.replace("www.", "");
+    if (host.includes("youtube") || host.includes("youtu.be")) return "YouTube";
+    if (host.includes("vimeo")) return "Vimeo";
+    return host.split(".")[0].replace(/^./, (c) => c.toUpperCase());
+  } catch { return "External"; }
+}
+
+function slugify(value) {
+  return normalize(value).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+/* ── INGEST / ADD LINK ──────────────────────────────────────── */
+function createCustomVideo() {
+  const title       = els.ingestTitle?.value.trim() || "";
+  const url         = els.ingestUrl?.value.trim()   || "";
+  const topic       = els.ingestTopic?.value.trim()  || "";
+  const level       = els.ingestLevel?.value         || "Beginner";
+  const duration    = Number(els.ingestDuration?.value) || 20;
+  const year        = Number(els.ingestYear?.value)     || 2026;
+  const description = els.ingestDescription?.value.trim() || "";
+  const tags        = (els.ingestTags?.value || "")
+    .split(",").map((t) => t.trim()).filter(Boolean).slice(0, 5);
+
+  return {
+    id:          `custom-${slugify(title) || "video"}-${Date.now()}`,
+    title,
+    topic,
+    level,
+    duration,
+    year,
+    provider:    providerFromUrl(url),
+    url,
+    thumbnail:   thumbnailFromUrl(url),
+    description,
+    tags:        tags.length ? tags : [topic],
+    popularity:  70
+  };
+}
+
+function showIngestThumbPreview(url) {
+  if (!els.ingestThumbPreview || !els.ingestThumbImg) return;
+  const thumb = thumbnailFromUrl(url);
+  if (thumb) {
+    els.ingestThumbImg.src  = thumb;
+    els.ingestThumbImg.alt  = "YouTube thumbnail preview";
+    els.ingestThumbPreview.hidden = false;
+  } else {
+    els.ingestThumbPreview.hidden = true;
+    els.ingestThumbImg.removeAttribute("src");
+  }
+}
+
+function checkDuplicateUrl(url) {
+  return getCatalogVideos().some((v) => v.url === url);
+}
+
+/* ── FEEDBACK ───────────────────────────────────────────────── */
+function openFeedbackDialog() {
+  if (typeof els.feedbackDialog.showModal === "function") {
+    els.feedbackDialog.showModal();
+    requestAnimationFrame(() => els.feedbackType?.focus());
+  }
+}
+
+function reportActiveVideo() {
+  const video = getVideoById(state.activeVideoId);
+  if (video) {
+    if (els.feedbackType) els.feedbackType.value = "broken";
+    if (els.feedbackMessage) els.feedbackMessage.value = `Broken link: ${video.title} (${video.url})`;
+    els.videoDialog.close();
+  }
+  openFeedbackDialog();
+}
+
+/* ── RESUME ─────────────────────────────────────────────────── */
+function openResumeCandidate() {
+  const candidate = getResumeCandidate();
+  if (candidate) openDetail(candidate.id);
+}
+
+/* ── BACKEND SYNC ───────────────────────────────────────────── */
 async function syncBackendVideos() {
   if (!window.Get2LearnApi) {
     setApiStatus("offline", "Local mode");
     return;
   }
-
   try {
     await window.Get2LearnApi.health();
     setApiStatus("online", "API online");
@@ -545,15 +1487,13 @@ async function syncBackendVideos() {
     setApiStatus("offline", "Local mode");
     return;
   }
-
   try {
     const response = await window.Get2LearnApi.listVideos({ page_size: 100, sort: "popular" });
-    const videos = (response.items || []).map(apiVideoToLocal);
+    const videos   = (response.items || []).map(apiVideoToLocal);
     if (videos.length) {
       state.remoteVideos = videos;
       hydrateFilters();
-      renderVideos();
-      renderPlaylists();
+      refreshAll();
       setApiStatus("synced", "API synced");
     } else {
       setApiStatus("online", "API online");
@@ -563,428 +1503,233 @@ async function syncBackendVideos() {
   }
 }
 
-function renderPlaylists() {
-  seedPlaylistFromSaved();
-  const active = state.playlists.find((playlist) => playlist.id === state.activePlaylist) || state.playlists[0];
-  state.activePlaylist = active.id;
-
-  els.playlistTabs.replaceChildren(
-    ...state.playlists.map((playlist) => {
-      const tab = document.createElement("button");
-      tab.className = "playlist-tab";
-      tab.type = "button";
-      tab.role = "tab";
-      tab.textContent = `${playlist.name} (${playlist.items.length})`;
-      tab.setAttribute("aria-selected", String(playlist.id === state.activePlaylist));
-      tab.addEventListener("click", () => {
-        state.activePlaylist = playlist.id;
-        persist();
-        renderPlaylists();
-      });
-      return tab;
-    })
-  );
-
-  const items = active.items
-    .map((id) => getVideoById(id))
-    .filter(Boolean);
-
-  if (!items.length) {
-    els.playlistItems.innerHTML = '<li>Add a video from the directory to build this learning queue.</li>';
-    updateCounts();
-    return;
-  }
-
-  els.playlistItems.replaceChildren(
-    ...items.map((video, index) => {
-      const li = document.createElement("li");
-      li.draggable = true;
-      li.dataset.videoId = video.id;
-      li.innerHTML = `
-        <span class="playlist-item-title">${escapeHtml(video.title)}</span>
-        <div class="playlist-item-actions">
-          <button type="button" data-action="up">Up</button>
-          <button type="button" data-action="down">Down</button>
-          <button type="button" data-action="remove">Remove</button>
-        </div>
-      `;
-
-      li.addEventListener("dragstart", (event) => {
-        event.dataTransfer.setData("text/plain", String(index));
-      });
-      li.addEventListener("dragover", (event) => event.preventDefault());
-      li.addEventListener("drop", (event) => {
-        event.preventDefault();
-        const from = Number(event.dataTransfer.getData("text/plain"));
-        movePlaylistItem(active.id, from, index);
-      });
-      li.querySelector("[data-action='up']").addEventListener("click", () => movePlaylistItem(active.id, index, index - 1));
-      li.querySelector("[data-action='down']").addEventListener("click", () => movePlaylistItem(active.id, index, index + 1));
-      li.querySelector("[data-action='remove']").addEventListener("click", () => removeFromPlaylist(active.id, video.id));
-      return li;
-    })
-  );
-  updateCounts();
-}
-
-function updateCounts() {
-  els.savedCount.textContent = [...state.saved].filter((id) => getVideoById(id)).length;
-  els.completedCount.textContent = getCompletedCount();
-  els.playlistCount.textContent = state.playlists.length;
-}
-
-function toggleSaved(videoId) {
-  if (state.saved.has(videoId)) {
-    state.saved.delete(videoId);
-    state.playlists.forEach((playlist) => {
-      if (playlist.id === "save-later") {
-        playlist.items = playlist.items.filter((id) => id !== videoId);
-      }
-    });
-  } else {
-    state.saved.add(videoId);
-    addToPlaylist("save-later", videoId, false);
-  }
-  persist();
-  renderVideos();
-  renderPlaylists();
-  renderActiveDetail();
-}
-
-function toggleCompleted(videoId) {
-  if (state.completed.has(videoId)) {
-    state.completed.delete(videoId);
-  } else {
-    state.completed.add(videoId);
-  }
-  persist();
-  renderVideos();
-  renderPlaylists();
-  renderActiveDetail();
-}
-
-function setReaction(videoId, reaction) {
-  state.reactions[videoId] = state.reactions[videoId] === reaction ? "" : reaction;
-  persist();
-  renderVideos();
-  renderActiveDetail();
-}
-
-function addToActivePlaylist(videoId) {
-  addToPlaylist(state.activePlaylist, videoId, true);
-}
-
-function addToPlaylist(playlistId, videoId, rerender) {
-  const playlist = state.playlists.find((item) => item.id === playlistId);
-  if (!playlist) return;
-  playlist.items = [...new Set([...playlist.items, videoId])];
-  persist();
-  if (rerender) {
-    renderPlaylists();
-    updateCounts();
-  }
-}
-
-function removeFromPlaylist(playlistId, videoId) {
-  const playlist = state.playlists.find((item) => item.id === playlistId);
-  if (!playlist) return;
-  playlist.items = playlist.items.filter((id) => id !== videoId);
-  if (playlistId === "save-later") state.saved.delete(videoId);
-  persist();
-  renderVideos();
-  renderPlaylists();
-  renderActiveDetail();
-}
-
-function movePlaylistItem(playlistId, from, to) {
-  const playlist = state.playlists.find((item) => item.id === playlistId);
-  if (!playlist || to < 0 || to >= playlist.items.length || from === to) return;
-  const [item] = playlist.items.splice(from, 1);
-  playlist.items.splice(to, 0, item);
-  persist();
-  renderPlaylists();
-}
-
-function renderActiveDetail() {
-  if (!state.activeVideoId || !els.videoDialog.open) return;
-  const video = getVideoById(state.activeVideoId);
-  if (video) renderDetail(video);
-}
-
-function openDetail(videoId) {
-  const video = getVideoById(videoId);
-  if (!video) return;
-  state.activeVideoId = videoId;
-  renderDetail(video);
-  if (typeof els.videoDialog.showModal === "function") {
-    els.videoDialog.showModal();
-  }
-}
-
-function renderDetail(video) {
-  els.detailMeta.textContent = `${video.provider} / ${video.year}`;
-  els.detailTitle.textContent = video.title;
-  els.detailDescription.textContent = video.description;
-  els.detailDuration.textContent = formatDuration(video.duration);
-  els.detailLevel.textContent = video.level;
-  els.detailTopic.textContent = video.topic;
-  els.detailNote.value = state.notes[video.id] || "";
-  els.detailOpen.href = video.url;
-
-  if (video.thumbnail) {
-    els.detailThumb.hidden = false;
-    els.detailThumb.src = video.thumbnail;
-    els.detailThumb.alt = `${video.title} thumbnail`;
-  } else {
-    els.detailThumb.hidden = true;
-    els.detailThumb.removeAttribute("src");
-    els.detailThumb.alt = "";
-  }
-
-  els.detailSave.textContent = state.saved.has(video.id) ? "Saved" : "Save";
-  els.detailSave.setAttribute("aria-pressed", String(state.saved.has(video.id)));
-  els.detailComplete.textContent = state.completed.has(video.id) ? "Completed" : "Mark complete";
-  els.detailComplete.setAttribute("aria-pressed", String(state.completed.has(video.id)));
-}
-
-function openFeedbackDialog() {
-  if (typeof els.feedbackDialog.showModal === "function") {
-    els.feedbackDialog.showModal();
-  }
-}
-
-function reportActiveVideo() {
-  const video = getVideoById(state.activeVideoId);
-  if (!video) return;
-  els.feedbackType.value = "broken";
-  els.feedbackMessage.value = `Broken link: ${video.title} (${video.url})`;
-  els.videoDialog.close();
-  openFeedbackDialog();
-}
-
-function extractYouTubeId(url) {
-  try {
-    const parsed = new URL(url);
-    const host = parsed.hostname.replace("www.", "");
-    if (host === "youtu.be") return parsed.pathname.slice(1).split("/")[0];
-    if (host.endsWith("youtube.com")) {
-      const directId = parsed.searchParams.get("v");
-      if (directId) return directId;
-      const match = parsed.pathname.match(/\/(embed|shorts)\/([A-Za-z0-9_-]{11})/);
-      return match ? match[2] : "";
-    }
-  } catch {
-    return "";
-  }
-  return "";
-}
-
-function thumbnailFromUrl(url) {
-  const youtubeId = extractYouTubeId(url);
-  return youtubeId ? `https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg` : "";
-}
-
-function providerFromUrl(url) {
-  try {
-    const host = new URL(url).hostname.replace("www.", "");
-    if (host.includes("youtube")) return "YouTube";
-    if (host.includes("youtu.be")) return "YouTube";
-    if (host.includes("vimeo")) return "Vimeo";
-    return host.split(".")[0].replace(/^./, (letter) => letter.toUpperCase());
-  } catch {
-    return "External";
-  }
-}
-
-function slugify(value) {
-  return normalize(value).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-}
-
-function createCustomVideo() {
-  const title = els.ingestTitle.value.trim();
-  const url = els.ingestUrl.value.trim();
-  const topic = els.ingestTopic.value.trim();
-  const level = els.ingestLevel.value;
-  const duration = Number(els.ingestDuration.value);
-  const year = Number(els.ingestYear.value);
-  const description = els.ingestDescription.value.trim();
-  const tags = els.ingestTags.value
-    .split(",")
-    .map((tag) => tag.trim())
-    .filter(Boolean)
-    .slice(0, 5);
-
-  return {
-    id: `custom-${slugify(title) || "video"}-${Date.now()}`,
-    title,
-    topic,
-    level,
-    duration,
-    year,
-    provider: providerFromUrl(url),
-    url,
-    thumbnail: thumbnailFromUrl(url),
-    description,
-    tags: tags.length ? tags : [topic],
-    popularity: 70
-  };
-}
-
-function openResumeCandidate() {
-  const activePlaylist = state.playlists.find((playlist) => playlist.id === state.activePlaylist);
-  const playlistCandidate = activePlaylist
-    ? activePlaylist.items.map((id) => getVideoById(id)).find((video) => video && !state.completed.has(video.id))
-    : null;
-  const recommendedCandidate = getCatalogVideos()
-    .filter((video) => !state.completed.has(video.id) && state.reactions[video.id] !== "down")
-    .sort((a, b) => scoreVideo(b) - scoreVideo(a))[0];
-  const candidate = playlistCandidate || recommendedCandidate;
-  if (candidate) openDetail(candidate.id);
-}
-
-function createPlaylist(name) {
-  const cleanName = name.trim();
-  if (!cleanName) return;
-  const id = cleanName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || `playlist-${Date.now()}`;
-  const uniqueId = state.playlists.some((playlist) => playlist.id === id) ? `${id}-${Date.now()}` : id;
-  state.playlists.push({ id: uniqueId, name: cleanName, items: [] });
-  state.activePlaylist = uniqueId;
-  persist();
-  renderPlaylists();
-}
-
-function scheduleRender() {
-  window.requestAnimationFrame(renderVideos);
-}
-
+/* ── EVENT BINDING ──────────────────────────────────────────── */
 function bindEvents() {
-  els.search.addEventListener("input", (event) => {
-    state.query = event.target.value;
-    scheduleRender();
+  // ── Navigation ──────────────────────────────────────────────
+  // Desktop rail
+  els.navItems.forEach((item) => {
+    item.addEventListener("click", () => navigateTo(item.dataset.page));
   });
-  els.topic.addEventListener("change", (event) => {
-    state.topic = event.target.value;
+  // Mobile bottom bar
+  els.bottomNavItems.forEach((item) => {
+    item.addEventListener("click", () => navigateTo(item.dataset.page));
+  });
+  // Brand link → home
+  document.querySelector("#brand-link")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    navigateTo("home");
+  });
+  // Add Link buttons
+  els.navAddLink?.addEventListener("click", () => {
+    if (els.ingestDialog && typeof els.ingestDialog.showModal === "function") {
+      els.ingestDialog.showModal();
+      requestAnimationFrame(() => els.ingestUrl?.focus());
+    }
+  });
+  els.mobileAddBtn?.addEventListener("click", () => {
+    if (els.ingestDialog && typeof els.ingestDialog.showModal === "function") {
+      els.ingestDialog.showModal();
+      requestAnimationFrame(() => els.ingestUrl?.focus());
+    }
+  });
+  els.openFeedback?.addEventListener("click", openFeedbackDialog);
+
+  // ── Explore filters ─────────────────────────────────────────
+  els.search?.addEventListener("input", (e) => {
+    state.query = e.target.value;
+    window.requestAnimationFrame(renderVideos);
+  });
+  els.topic?.addEventListener("change", (e) => {
+    state.topic = e.target.value;
     renderVideos();
   });
-  els.level.addEventListener("change", (event) => {
-    state.level = event.target.value;
+  els.level?.addEventListener("change", (e) => {
+    state.level = e.target.value;
     renderVideos();
   });
-  els.duration.addEventListener("change", (event) => {
-    state.duration = event.target.value;
+  els.duration?.addEventListener("change", (e) => {
+    state.duration = e.target.value;
     renderVideos();
   });
-  els.sort.addEventListener("change", (event) => {
-    state.sort = event.target.value;
+  els.sort?.addEventListener("change", (e) => {
+    state.sort = e.target.value;
     renderVideos();
   });
-  els.savedOnly.addEventListener("change", (event) => {
-    state.savedOnly = event.target.checked;
+  els.savedOnly?.addEventListener("change", (e) => {
+    state.savedOnly = e.target.checked;
     renderVideos();
   });
-  els.freshOnly.addEventListener("change", (event) => {
-    state.freshOnly = event.target.checked;
+  els.freshOnly?.addEventListener("change", (e) => {
+    state.freshOnly = e.target.checked;
     renderVideos();
   });
-  els.unfinishedOnly.addEventListener("change", (event) => {
-    state.unfinishedOnly = event.target.checked;
+  els.unfinishedOnly?.addEventListener("change", (e) => {
+    state.unfinishedOnly = e.target.checked;
     renderVideos();
   });
-  els.resumeNext.addEventListener("click", openResumeCandidate);
-  els.openIngest.addEventListener("click", () => {
-    if (state.topic !== "all") els.ingestTopic.value = state.topic;
+  els.resumeNext?.addEventListener("click", openResumeCandidate);
+
+  // ── Playlist panel ──────────────────────────────────────────
+  els.openPlaylists?.addEventListener("click", () => {
+    els.playlistPanel?.classList.add("is-open");
+    renderPlaylists();
+  });
+  els.closePlaylists?.addEventListener("click", () => {
+    els.playlistPanel?.classList.remove("is-open");
+  });
+  els.playlistForm?.addEventListener("submit", (e) => {
+    e.preventDefault();
+    createPlaylist(els.playlistName?.value || "");
+    if (els.playlistName) els.playlistName.value = "";
+  });
+
+  // ── Add Link ────────────────────────────────────────────────
+  document.querySelector("#open-ingest")?.addEventListener("click", () => {
+    if (state.topic !== "all" && els.ingestTopic) els.ingestTopic.value = state.topic;
     if (typeof els.ingestDialog.showModal === "function") {
       els.ingestDialog.showModal();
+      requestAnimationFrame(() => els.ingestUrl?.focus());
     }
   });
-  els.closeIngest.addEventListener("click", () => {
-    els.ingestDialog.close();
+  els.closeIngest?.addEventListener("click", () => els.ingestDialog.close());
+  els.ingestUrl?.addEventListener("blur", () => {
+    showIngestThumbPreview(els.ingestUrl.value);
+    const isDuplicate = checkDuplicateUrl(els.ingestUrl.value.trim());
+    const errEl = document.querySelector("#ingest-url-error");
+    if (errEl) {
+      errEl.textContent = isDuplicate ? "⚠ This URL is already in the directory." : "";
+      errEl.hidden = !isDuplicate;
+    }
   });
-  els.ingestForm.addEventListener("submit", (event) => {
-    event.preventDefault();
+  els.ingestForm?.addEventListener("submit", (e) => {
+    e.preventDefault();
     const video = createCustomVideo();
+    if (!video.title || !video.url) return;
     state.customVideos.unshift(video);
     persist();
     hydrateFilters();
-    renderVideos();
-    renderPlaylists();
+    refreshAll();
     els.ingestForm.reset();
+    if (els.ingestThumbPreview) els.ingestThumbPreview.hidden = true;
     els.ingestDialog.close();
+    showToast(`"${video.title}" added to directory`);
   });
-  els.openPlaylists.addEventListener("click", () => {
-    els.playlistPanel.classList.add("is-open");
+
+  // ── Feedback ────────────────────────────────────────────────
+  els.closeFeedback?.addEventListener("click", () => els.feedbackDialog.close());
+  els.feedbackMessage?.addEventListener("input", () => {
+    const len = els.feedbackMessage.value.length;
+    if (els.feedbackCharCount) els.feedbackCharCount.textContent = `${len} / 260`;
   });
-  els.closePlaylists.addEventListener("click", () => {
-    els.playlistPanel.classList.remove("is-open");
-  });
-  els.playlistForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-    createPlaylist(els.playlistName.value);
-    els.playlistName.value = "";
-  });
-  els.closeDetail.addEventListener("click", () => {
-    els.videoDialog.close();
-  });
-  els.videoDialog.addEventListener("close", () => {
-    state.activeVideoId = "";
-    renderVideos();
-  });
-  els.detailThumb.addEventListener("error", () => {
-    els.detailThumb.hidden = true;
-    els.detailThumb.removeAttribute("src");
-  });
-  els.detailNote.addEventListener("input", (event) => {
-    if (!state.activeVideoId) return;
-    const note = event.target.value.trim();
-    if (note) {
-      state.notes[state.activeVideoId] = note;
-    } else {
-      delete state.notes[state.activeVideoId];
-    }
-    persist();
-  });
-  els.detailSave.addEventListener("click", () => {
-    if (state.activeVideoId) toggleSaved(state.activeVideoId);
-  });
-  els.detailComplete.addEventListener("click", () => {
-    if (state.activeVideoId) toggleCompleted(state.activeVideoId);
-  });
-  els.detailAdd.addEventListener("click", () => {
-    if (state.activeVideoId) addToActivePlaylist(state.activeVideoId);
-  });
-  els.detailReport.addEventListener("click", reportActiveVideo);
-  els.openFeedback.addEventListener("click", () => {
-    openFeedbackDialog();
-  });
-  els.closeFeedback.addEventListener("click", () => {
-    els.feedbackDialog.close();
-  });
-  els.feedbackForm.addEventListener("submit", () => {
-    const feedback = readJson(storageKeys.feedback, []);
-    const message = els.feedbackMessage.value.trim();
-    const feedbackType = els.feedbackType.value;
-    feedback.push({
-      type: feedbackType,
-      message,
-      createdAt: new Date().toISOString()
-    });
-    localStorage.setItem(storageKeys.feedback, JSON.stringify(feedback));
+  els.feedbackForm?.addEventListener("submit", () => {
+    const all  = readJson(storageKeys.feedback, []);
+    const msg  = els.feedbackMessage?.value.trim() || "";
+    const type = els.feedbackType?.value || "general";
+    all.push({ type, message: msg, createdAt: new Date().toISOString() });
+    localStorage.setItem(storageKeys.feedback, JSON.stringify(all));
     if (window.Get2LearnApi && state.apiMode !== "offline") {
       window.Get2LearnApi.createFeedback({
-        feedback_type: feedbackType === "broken" ? "broken_link" : feedbackType === "topic" ? "topic_request" : "suggestion",
-        message
+        feedback_type: type === "broken" ? "broken_link" : type === "topic" ? "topic_request" : "suggestion",
+        message: msg
       }).catch(() => setApiStatus("partial", "API ready"));
     }
-    els.feedbackMessage.value = "";
+    if (els.feedbackMessage) els.feedbackMessage.value = "";
+    if (els.feedbackCharCount) els.feedbackCharCount.textContent = "0 / 260";
+    showToast("Feedback saved locally — thank you");
+  });
+
+  // ── Video drawer ────────────────────────────────────────────
+  els.closeDetail?.addEventListener("click", () => els.videoDialog.close());
+  els.videoDialog?.addEventListener("close", () => {
+    // Save note on close
+    if (state.activeVideoId && els.detailNote) {
+      const note = els.detailNote.value.trim();
+      if (note) {
+        state.notes[state.activeVideoId] = note;
+      } else {
+        delete state.notes[state.activeVideoId];
+      }
+      persist();
+    }
+    // Restore focus
+    _previousFocusEl?.focus();
+    state.activeVideoId = "";
+    refreshAll();
+  });
+  els.detailThumb?.addEventListener("error", () => {
+    if (els.detailThumb) {
+      els.detailThumb.hidden = true;
+      els.detailThumb.removeAttribute("src");
+    }
+  });
+  els.detailNote?.addEventListener("input", (e) => {
+    if (!state.activeVideoId) return;
+    const note = e.target.value.trim();
+    if (note) { state.notes[state.activeVideoId] = note; }
+    else      { delete state.notes[state.activeVideoId]; }
+    persist();
+  });
+  els.detailSave?.addEventListener("click", () => {
+    if (state.activeVideoId) toggleSaved(state.activeVideoId);
+    renderActiveDetail();
+  });
+  els.detailComplete?.addEventListener("click", () => {
+    if (state.activeVideoId) toggleCompleted(state.activeVideoId);
+  });
+  els.detailAdd?.addEventListener("click", () => {
+    if (state.activeVideoId) addToActivePlaylist(state.activeVideoId);
+  });
+  els.detailReport?.addEventListener("click", reportActiveVideo);
+
+  // ── My Learning tabs ────────────────────────────────────────
+  els.tabBtns.forEach((btn, index) => {
+    btn.addEventListener("click", () => activateMyTab(btn.dataset.tab));
+    btn.addEventListener("keydown", (e) => {
+      const tabs = [...els.tabBtns];
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        tabs[(index + 1) % tabs.length].focus();
+        tabs[(index + 1) % tabs.length].click();
+      }
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        tabs[(index - 1 + tabs.length) % tabs.length].focus();
+        tabs[(index - 1 + tabs.length) % tabs.length].click();
+      }
+    });
+  });
+
+  // ── Notes search ────────────────────────────────────────────
+  els.notesSearch?.addEventListener("input", (e) => {
+    window.requestAnimationFrame(() => renderNotes(e.target.value));
+  });
+
+  // ── Learning Paths ──────────────────────────────────────────
+  els.createPathBtn?.addEventListener("click", () => {
+    const name = prompt("New learning path name:");
+    if (name && name.trim()) {
+      const desc = prompt("Short description (optional):") || "";
+      createPath(name, desc);
+    }
+  });
+
+  // ── Escape key for playlist panel (mobile bottom sheet) ─────
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && els.playlistPanel?.classList.contains("is-open")) {
+      els.playlistPanel.classList.remove("is-open");
+    }
   });
 }
 
+/* ── INIT ───────────────────────────────────────────────────── */
 function init() {
   seedPlaylistFromSaved();
   hydrateFilters();
   bindEvents();
-  renderVideos();
-  renderPlaylists();
+
+  // Navigate to the persisted page (default: home)
+  navigateTo(state.activePage);
+
   persist();
   syncBackendVideos();
 }
