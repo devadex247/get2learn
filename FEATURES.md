@@ -197,7 +197,7 @@ py -m http.server 5500
 ```
 
 Then open:
-
+`
 ```text
 http://localhost:5500
 ```
