@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -165,3 +165,52 @@ async def reorder_playlist(
     await session.commit()
     await session.refresh(playlist)
     return await playlist_to_read(session, playlist)
+
+
+@router.delete("/{playlist_id}/items/{video_id}", response_model=PlaylistRead)
+async def remove_playlist_item(
+    playlist_id: uuid.UUID,
+    video_id: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+) -> PlaylistRead:
+    playlist = await get_owned_playlist(session, playlist_id, current_user.id)
+    result = await session.execute(
+        select(PlaylistItem).where(
+            PlaylistItem.playlist_id == playlist_id,
+            PlaylistItem.video_id == video_id,
+        )
+    )
+    item = result.scalar_one_or_none()
+    if item:
+        await session.delete(item)
+        await session.flush()
+        remaining_result = await session.execute(
+            select(PlaylistItem)
+            .where(PlaylistItem.playlist_id == playlist_id)
+            .order_by(PlaylistItem.position.asc())
+        )
+        remaining = remaining_result.scalars().all()
+        for idx, p_item in enumerate(remaining):
+            p_item.position = idx
+        await session.commit()
+        await session.refresh(playlist)
+    return await playlist_to_read(session, playlist)
+
+
+@router.delete("/{playlist_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_playlist(
+    playlist_id: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+) -> Response:
+    playlist = await get_owned_playlist(session, playlist_id, current_user.id)
+    if playlist.is_default_save_for_later:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete the default Save for Later playlist",
+        )
+    await session.delete(playlist)
+    await session.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+

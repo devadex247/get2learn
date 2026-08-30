@@ -2,7 +2,7 @@ import enum
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, CheckConstraint, Column, DateTime, Enum, ForeignKey, Index, String, Text, UniqueConstraint, func, text
+from sqlalchemy import Boolean, CheckConstraint, Column, DateTime, Enum, ForeignKey, Index, JSON, String, Text, UniqueConstraint, func, text
 from sqlalchemy.dialects.postgresql import ARRAY, UUID as PG_UUID
 from sqlmodel import Field, Relationship, SQLModel
 
@@ -76,7 +76,10 @@ class Video(SQLModel, table=True):
     duration_minutes: int = Field(nullable=False)
     year: int = Field(nullable=False, index=True)
     description: str = Field(default="", sa_column=Column(Text, nullable=False, server_default=""))
-    tags: list[str] = Field(default_factory=list, sa_column=Column(ARRAY(String(60)), nullable=False, server_default=text("'{}'")))
+    tags: list[str] = Field(
+        default_factory=list,
+        sa_column=Column(JSON().with_variant(ARRAY(String(60)), "postgresql"), nullable=False, server_default=text("'[]'")),
+    )
     thumbnail_url: str | None = Field(default=None, sa_column=Column(Text, nullable=True))
     status: VideoStatus = Field(default=VideoStatus.pending, sa_column=Column(Enum(VideoStatus, name="video_status"), nullable=False, index=True))
     popularity_score: int = Field(default=0, nullable=False, index=True)
@@ -129,6 +132,7 @@ class Playlist(SQLModel, table=True):
             "user_id",
             unique=True,
             postgresql_where=text("is_default_save_for_later = true"),
+            sqlite_where=text("is_default_save_for_later = 1"),
         ),
     )
 

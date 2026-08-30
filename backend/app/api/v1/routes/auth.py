@@ -4,6 +4,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
+from app.core.dependencies import get_current_user
 from app.core.errors import ResourceConflictError
 from app.core.security import create_access_token, get_password_hash, verify_password
 from app.db.models import Playlist, User
@@ -49,3 +50,9 @@ async def login(
         )
 
     return Token(access_token=create_access_token(user))
+
+
+@router.get("/me", response_model=UserRead)
+async def get_me(current_user: User = Depends(get_current_user)) -> User:
+    return current_user
+

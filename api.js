@@ -76,6 +76,7 @@
       body: JSON.stringify({ email, password })
     }),
     login,
+    getMe: () => request("/auth/me"),
     listVideos: (params) => request("/videos", { params }),
     addVideo: (payload) => request("/videos/add", {
       method: "POST",
@@ -94,13 +95,23 @@
       method: "POST",
       body: JSON.stringify({ video_id: videoId })
     }),
+    removePlaylistItem: (playlistId, videoId) => request(`/playlists/${playlistId}/items/${videoId}`, {
+      method: "DELETE"
+    }),
+    deletePlaylist: (playlistId) => request(`/playlists/${playlistId}`, {
+      method: "DELETE"
+    }),
     reorderPlaylist: (playlistId, orderedVideoIds) => request(`/playlists/${playlistId}/reorder`, {
       method: "PUT",
       body: JSON.stringify({ ordered_video_ids: orderedVideoIds })
     }),
+    listNotes: () => request("/notes"),
     upsertNote: (videoId, noteText) => request("/notes", {
       method: "PUT",
       body: JSON.stringify({ video_id: videoId, note_text: noteText })
+    }),
+    deleteNote: (videoId) => request(`/notes/${videoId}`, {
+      method: "DELETE"
     }),
     createFeedback: (payload) => request("/feedback", {
       method: "POST",
@@ -108,3 +119,4 @@
     })
   };
 })();
+

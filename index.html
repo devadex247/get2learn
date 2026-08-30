@@ -30,6 +30,12 @@
 
       <div class="top-actions" aria-label="Quick actions">
         <span class="api-status" id="api-status" data-status="checking" aria-label="API status: checking">Checking…</span>
+        <div id="auth-header-container" class="auth-header-container">
+          <button class="icon-button" id="open-auth" type="button" aria-label="Sign in or register account">
+            <span class="button-icon" aria-hidden="true">👤</span>
+            <span class="button-text">Sign In</span>
+          </button>
+        </div>
         <button class="icon-button" id="open-ingest" type="button" aria-label="Add a curated link">
           <span class="button-icon" aria-hidden="true">+</span>
           <span class="button-text">Add Link</span>
@@ -516,6 +522,35 @@
         <p class="storage-notice">
           <span aria-hidden="true">🔒</span> Feedback is saved locally until backend sync is available.
         </p>
+      </form>
+    </dialog>
+
+    <!-- ── Auth Dialog ────────────────────────────────────────── -->
+    <dialog id="auth-dialog" class="dialog modal-dialog">
+      <form id="auth-form" method="dialog">
+        <div class="dialog-header">
+          <h2 id="auth-dialog-title">Sign In to get2learn</h2>
+          <button class="icon-button" id="close-auth" type="button" aria-label="Close authentication dialog">✕</button>
+        </div>
+
+        <div class="auth-tabs" role="tablist">
+          <button type="button" class="tab-btn active" id="auth-tab-login">Sign In</button>
+          <button type="button" class="tab-btn" id="auth-tab-register">Register</button>
+        </div>
+
+        <div id="auth-error" class="auth-error" hidden aria-live="polite"></div>
+
+        <label>
+          <span>Email Address</span>
+          <input type="email" id="auth-email" required placeholder="developer@example.com">
+        </label>
+
+        <label>
+          <span>Password</span>
+          <input type="password" id="auth-password" required minlength="6" placeholder="••••••••">
+        </label>
+
+        <button class="primary-button" id="auth-submit-btn" type="submit">Sign In</button>
       </form>
     </dialog>
 

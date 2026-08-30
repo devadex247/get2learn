@@ -1180,3 +1180,80 @@ textarea::placeholder {
     margin: auto 0 0;
   }
 }
+
+/* ── 21. AUTH UI STYLES ───────────────────────────────────────── */
+.auth-header-container {
+  display: flex;
+  align-items: center;
+}
+
+.user-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-1) var(--sp-3);
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.role-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px var(--sp-2);
+  border-radius: var(--radius-full);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.role-pill[data-role="student"] {
+  background: var(--accent-tint);
+  color: var(--accent-dark);
+}
+
+.role-pill[data-role="curator"] {
+  background: var(--info-tint);
+  color: var(--info);
+}
+
+.role-pill[data-role="admin"] {
+  background: var(--warning-tint);
+  color: var(--warning);
+}
+
+.auth-tabs {
+  display: flex;
+  gap: var(--sp-2);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: var(--sp-2);
+  margin-bottom: var(--sp-3);
+}
+
+.auth-tabs .tab-btn {
+  flex: 1;
+  padding: var(--sp-2);
+  border: none;
+  background: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+
+.auth-tabs .tab-btn.active {
+  color: var(--accent-dark);
+  border-bottom: 2px solid var(--accent);
+}
+
+.auth-error {
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--danger-tint, #fee2e2);
+  color: var(--danger, #dc2626);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  margin-bottom: var(--sp-3);
+}
+

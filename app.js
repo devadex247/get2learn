@@ -224,12 +224,30 @@ const state = {
   activePage:     localStorage.getItem(storageKeys.activeNav) || "home",
   activeMyTab:    localStorage.getItem(storageKeys.activeMyTab) || "continue",
 
+  // Auth state
+  user:           null,
+  authMode:       "login",
+
   // UI state
   activeVideoId:  ""
 };
 
 /* ── DOM REFERENCES ─────────────────────────────────────────── */
 const els = {
+  // Auth
+  authHeaderContainer: document.querySelector("#auth-header-container"),
+  openAuth:            document.querySelector("#open-auth"),
+  authDialog:          document.querySelector("#auth-dialog"),
+  authForm:            document.querySelector("#auth-form"),
+  closeAuth:           document.querySelector("#close-auth"),
+  authDialogTitle:     document.querySelector("#auth-dialog-title"),
+  authTabLogin:        document.querySelector("#auth-tab-login"),
+  authTabRegister:     document.querySelector("#auth-tab-register"),
+  authError:           document.querySelector("#auth-error"),
+  authEmail:           document.querySelector("#auth-email"),
+  authPassword:        document.querySelector("#auth-password"),
+  authSubmitBtn:       document.querySelector("#auth-submit-btn"),
+
   // Navigation
   navItems:       document.querySelectorAll(".nav-item[data-page]"),
   bottomNavItems: document.querySelectorAll(".bottom-nav-item[data-page]"),
@@ -1200,12 +1218,11 @@ function renderPlaylists() {
 
 /* ── STATE MUTATIONS ────────────────────────────────────────── */
 function toggleSaved(videoId) {
-  const video   = getVideoById(videoId);
   const wasSaved = state.saved.has(videoId);
   if (wasSaved) {
     state.saved.delete(videoId);
     state.playlists.forEach((pl) => {
-      if (pl.id === "save-later") pl.items = pl.items.filter((id) => id !== videoId);
+      if (pl.id === "save-later" || pl.is_default_save_for_later) pl.items = pl.items.filter((id) => id !== videoId);
     });
     showToast("Removed from Save for Later", () => {
       state.saved.add(videoId);
@@ -1220,6 +1237,13 @@ function toggleSaved(videoId) {
   }
   persist();
   refreshAll();
+
+  if (window.Get2LearnApi && state.user && videoId.length > 20) {
+    window.Get2LearnApi.updateInteraction({
+      video_id: videoId,
+      is_saved: !wasSaved
+    }).catch((err) => console.warn("API interaction sync failed", err));
+  }
 }
 
 function toggleCompleted(videoId) {
@@ -1234,13 +1258,30 @@ function toggleCompleted(videoId) {
   persist();
   refreshAll();
   renderActiveDetail();
+
+  if (window.Get2LearnApi && state.user && videoId.length > 20) {
+    window.Get2LearnApi.updateInteraction({
+      video_id: videoId,
+      is_completed: !wasCompleted
+    }).catch((err) => console.warn("API interaction sync failed", err));
+  }
 }
 
 function setReaction(videoId, reaction) {
-  state.reactions[videoId] = state.reactions[videoId] === reaction ? "" : reaction;
+  const isSelected = state.reactions[videoId] === reaction;
+  state.reactions[videoId] = isSelected ? "" : reaction;
   persist();
   refreshAll();
   renderActiveDetail();
+
+  if (window.Get2LearnApi && state.user && videoId.length > 20) {
+    const apiReaction = !isSelected ? (reaction === "up" ? "useful" : "skip") : null;
+    window.Get2LearnApi.updateInteraction({
+      video_id: videoId,
+      reaction: apiReaction,
+      clear_reaction: isSelected
+    }).catch((err) => console.warn("API reaction sync failed", err));
+  }
 }
 
 function addToActivePlaylist(videoId) {
@@ -1258,23 +1299,34 @@ function addToPlaylist(playlistId, videoId, rerender) {
     updateCounts();
     if (!alreadyIn) showToast(`Added to "${playlist.name}"`);
   }
+
+  if (window.Get2LearnApi && state.user && videoId.length > 20 && playlistId.length > 20) {
+    window.Get2LearnApi.addPlaylistItem(playlistId, videoId)
+      .catch((err) => console.warn("API add playlist item failed", err));
+  }
 }
 
 function removeFromPlaylist(playlistId, videoId) {
   const playlist = state.playlists.find((pl) => pl.id === playlistId);
   if (!playlist) return;
   playlist.items = playlist.items.filter((id) => id !== videoId);
-  if (playlistId === "save-later") state.saved.delete(videoId);
+  if (playlistId === "save-later" || playlist.is_default_save_for_later) state.saved.delete(videoId);
   persist();
   renderPlaylists();
   renderActiveDetail();
   if (state.activePage === "explore") renderVideos();
+
+  if (window.Get2LearnApi && state.user && videoId.length > 20 && playlistId.length > 20) {
+    window.Get2LearnApi.removePlaylistItem(playlistId, videoId)
+      .catch((err) => console.warn("API remove playlist item failed", err));
+  }
 }
 
 function movePlaylistItem(playlistId, from, to) {
   const playlist = state.playlists.find((pl) => pl.id === playlistId);
   if (!playlist || to < 0 || to >= playlist.items.length || from === to) return;
   const [item] = playlist.items.splice(from, 1);
+
   playlist.items.splice(to, 0, item);
   persist();
   renderPlaylists();
@@ -1289,6 +1341,18 @@ function createPlaylist(name) {
   persist();
   renderPlaylists();
   showToast(`Playlist "${clean}" created`);
+
+  if (window.Get2LearnApi && state.user) {
+    window.Get2LearnApi.createPlaylist(clean)
+      .then((created) => {
+        const pl = state.playlists.find((p) => p.id === id);
+        if (pl) pl.id = created.id;
+        if (state.activePlaylist === id) state.activePlaylist = created.id;
+        persist();
+        renderPlaylists();
+      })
+      .catch((err) => console.warn("API create playlist failed", err));
+  }
 }
 
 /* ── REFRESH HELPER ─────────────────────────────────────────── */
@@ -1503,8 +1567,218 @@ async function syncBackendVideos() {
   }
 }
 
+/* ── AUTHENTICATION & USER DATA SYNC ─────────────────────────── */
+function renderAuthHeader() {
+  const container = els.authHeaderContainer || document.querySelector("#auth-header-container");
+  if (!container) return;
+
+  if (state.user) {
+    const email = state.user.email;
+    const role = state.user.role || "student";
+    container.innerHTML = `
+      <div class="user-badge" title="Logged in as ${escapeHtml(email)}">
+        <span>${escapeHtml(email.split("@")[0])}</span>
+        <span class="role-pill" data-role="${escapeHtml(role)}">${escapeHtml(role)}</span>
+      </div>
+      <button class="icon-button" id="logout-btn" type="button" aria-label="Sign out">
+        <span class="button-icon" aria-hidden="true">🚪</span>
+        <span class="button-text">Logout</span>
+      </button>`;
+    container.querySelector("#logout-btn")?.addEventListener("click", () => {
+      if (window.Get2LearnApi) window.Get2LearnApi.clearToken();
+      state.user = null;
+      renderAuthHeader();
+      showToast("Signed out");
+    });
+  } else {
+    container.innerHTML = `
+      <button class="icon-button" id="open-auth" type="button" aria-label="Sign in or register account">
+        <span class="button-icon" aria-hidden="true">👤</span>
+        <span class="button-text">Sign In</span>
+      </button>`;
+    container.querySelector("#open-auth")?.addEventListener("click", () => openAuthModal("login"));
+  }
+}
+
+function openAuthModal(mode = "login") {
+  state.authMode = mode;
+  if (els.authDialogTitle) {
+    els.authDialogTitle.textContent = mode === "login" ? "Sign In to get2learn" : "Create a get2learn Account";
+  }
+  if (els.authSubmitBtn) {
+    els.authSubmitBtn.textContent = mode === "login" ? "Sign In" : "Register Account";
+  }
+  if (els.authTabLogin && els.authTabRegister) {
+    els.authTabLogin.classList.toggle("active", mode === "login");
+    els.authTabRegister.classList.toggle("active", mode === "register");
+  }
+  if (els.authError) {
+    els.authError.hidden = true;
+    els.authError.textContent = "";
+  }
+  if (els.authDialog && typeof els.authDialog.showModal === "function") {
+    els.authDialog.showModal();
+    requestAnimationFrame(() => els.authEmail?.focus());
+  }
+}
+
+async function handleAuthSubmit(e) {
+  e.preventDefault();
+  const email = els.authEmail?.value.trim();
+  const password = els.authPassword?.value;
+  if (!email || !password) return;
+
+  if (els.authSubmitBtn) els.authSubmitBtn.disabled = true;
+  if (els.authError) els.authError.hidden = true;
+
+  try {
+    if (state.authMode === "register") {
+      await window.Get2LearnApi.register(email, password);
+    }
+    await window.Get2LearnApi.login(email, password);
+    await checkAuthSession();
+    if (els.authDialog) els.authDialog.close();
+    if (els.authForm) els.authForm.reset();
+    showToast(state.authMode === "login" ? "Signed in successfully" : "Account registered and signed in!");
+    await migrateLocalStateToBackend();
+  } catch (err) {
+    if (els.authError) {
+      els.authError.textContent = err.message || "Authentication failed";
+      els.authError.hidden = false;
+    }
+  } finally {
+    if (els.authSubmitBtn) els.authSubmitBtn.disabled = false;
+  }
+}
+
+async function checkAuthSession() {
+  if (!window.Get2LearnApi || !window.Get2LearnApi.getToken()) {
+    state.user = null;
+    renderAuthHeader();
+    return;
+  }
+  try {
+    const user = await window.Get2LearnApi.getMe();
+    state.user = user;
+    renderAuthHeader();
+    await syncUserDataFromBackend();
+  } catch {
+    window.Get2LearnApi.clearToken();
+    state.user = null;
+    renderAuthHeader();
+  }
+}
+
+async function syncUserDataFromBackend() {
+  if (!window.Get2LearnApi || !state.user || state.apiMode === "offline") return;
+  try {
+    const [playlists, notes] = await Promise.all([
+      window.Get2LearnApi.listPlaylists().catch(() => []),
+      window.Get2LearnApi.listNotes().catch(() => [])
+    ]);
+
+    if (Array.isArray(playlists) && playlists.length) {
+      state.playlists = playlists.map((pl) => ({
+        id: pl.id,
+        name: pl.name,
+        is_default_save_for_later: pl.is_default_save_for_later,
+        items: (pl.items || []).map((item) => item.video_id)
+      }));
+      const defaultPl = state.playlists.find((pl) => pl.is_default_save_for_later);
+      if (defaultPl) {
+        state.saved = new Set(defaultPl.items);
+      }
+    }
+
+    if (Array.isArray(notes)) {
+      notes.forEach((n) => {
+        if (n.video_id && n.note_text) {
+          state.notes[n.video_id] = n.note_text;
+        }
+      });
+    }
+
+    persist();
+    refreshAll();
+  } catch (err) {
+    console.warn("Backend user data sync notice:", err);
+  }
+}
+
+async function migrateLocalStateToBackend() {
+  if (!window.Get2LearnApi || !state.user || state.apiMode === "offline") return;
+  try {
+    if (["curator", "admin"].includes(state.user.role)) {
+      for (const v of state.customVideos) {
+        try {
+          await window.Get2LearnApi.addVideo({
+            title: v.title,
+            url: v.url,
+            topic: v.topic,
+            level: v.level,
+            duration_minutes: v.duration,
+            year: v.year,
+            description: v.description,
+            tags: v.tags,
+            thumbnail_url: v.thumbnail || null
+          });
+        } catch {
+          // ignore duplicates
+        }
+      }
+    }
+
+    const allVideoIds = new Set([
+      ...state.saved,
+      ...state.completed,
+      ...Object.keys(state.reactions)
+    ]);
+    for (const vid of allVideoIds) {
+      const isSaved = state.saved.has(vid);
+      const isDone = state.completed.has(vid);
+      const react = state.reactions[vid];
+
+      if (vid.includes("-") && vid.length > 20) {
+        try {
+          await window.Get2LearnApi.updateInteraction({
+            video_id: vid,
+            is_saved: isSaved,
+            is_completed: isDone,
+            reaction: react === "up" ? "useful" : react === "down" ? "skip" : null,
+            clear_reaction: !react
+          });
+        } catch {
+          // ignore
+        }
+      }
+    }
+
+    for (const [vid, text] of Object.entries(state.notes)) {
+      if (vid.includes("-") && vid.length > 20 && text) {
+        try {
+          await window.Get2LearnApi.upsertNote(vid, text);
+        } catch {
+          // ignore
+        }
+      }
+    }
+
+    await syncUserDataFromBackend();
+  } catch (err) {
+    console.warn("Local migration notice:", err);
+  }
+}
+
+
 /* ── EVENT BINDING ──────────────────────────────────────────── */
 function bindEvents() {
+  // ── Auth Modal & Form ─────────────────────────────────────────
+  els.openAuth?.addEventListener("click", () => openAuthModal("login"));
+  els.closeAuth?.addEventListener("click", () => els.authDialog?.close());
+  els.authTabLogin?.addEventListener("click", () => openAuthModal("login"));
+  els.authTabRegister?.addEventListener("click", () => openAuthModal("register"));
+  els.authForm?.addEventListener("submit", handleAuthSubmit);
+
   // ── Navigation ──────────────────────────────────────────────
   // Desktop rail
   els.navItems.forEach((item) => {
@@ -1726,12 +2000,14 @@ function init() {
   seedPlaylistFromSaved();
   hydrateFilters();
   bindEvents();
+  renderAuthHeader();
 
   // Navigate to the persisted page (default: home)
   navigateTo(state.activePage);
 
   persist();
-  syncBackendVideos();
+  syncBackendVideos().then(() => checkAuthSession());
 }
 
 init();
+
