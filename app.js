@@ -789,16 +789,17 @@ function updateCounts() {
 /* ── HOME PAGE ──────────────────────────────────────────────── */
 function renderHome() {
   // Greeting
-  if (els.homeGreeting) els.homeGreeting.textContent = getTimeGreeting();
+  const greetingEl = els.homeGreeting;
+  if (greetingEl) greetingEl.textContent = getTimeGreeting();
 
   const candidate = getResumeCandidate();
   if (els.homeSubline) {
     els.homeSubline.textContent = candidate
       ? `Next up: ${candidate.title}`
-      : "Explore the catalogue to start your journey.";
+      : "Your learning journey awaits — explore the catalogue.";
   }
   if (els.homeResumeBtn) {
-    els.homeResumeBtn.textContent = candidate ? "Resume next lesson" : "Explore videos";
+    els.homeResumeBtn.textContent = candidate ? "▶  Resume next lesson" : "Explore videos →";
     els.homeResumeBtn.onclick = () => {
       if (candidate) {
         openDetail(candidate.id);
@@ -808,7 +809,7 @@ function renderHome() {
     };
   }
 
-  // Continue Learning strip
+  // Continue Learning carousel
   renderContinueStrip(els.continueStrip);
 
   // Recommendations
@@ -820,49 +821,75 @@ function renderHome() {
 
 function renderContinueStrip(container) {
   if (!container) return;
-  const candidate = getResumeCandidate();
 
-  if (!candidate) {
+  // Gather up to 4 resume candidates (unfinished, not skipped)
+  const candidates = getCatalogVideos()
+    .filter((v) => !state.completed.has(v.id) && state.reactions[v.id] !== "down")
+    .sort((a, b) => scoreVideo(b) - scoreVideo(a))
+    .slice(0, 4);
+
+  if (!candidates.length) {
     container.innerHTML = `
-      <div class="empty-state">
-        You are all caught up. <button class="link-btn" id="explore-cta-btn" type="button">Explore a new topic →</button>
+      <div class="empty-state" style="padding:var(--sp-8) var(--sp-4);text-align:center;">
+        <p style="font-size:1.05rem;font-weight:700;margin-bottom:var(--sp-2);">All caught up! 🎉</p>
+        <button class="primary-button" id="explore-cta-btn" type="button">Explore new topics →</button>
       </div>`;
     container.querySelector("#explore-cta-btn")?.addEventListener("click", () => navigateTo("explore"));
     return;
   }
 
-  const isSaved = state.saved.has(candidate.id);
-  container.innerHTML = `
-    <div class="continue-card">
-      <div class="continue-card__thumb-wrap">
-        <img class="continue-card__thumb" src="${escapeHtml(candidate.thumbnail || "")}"
-             alt="${escapeHtml(candidate.title)} thumbnail"
-             width="320" height="180" loading="lazy" decoding="async"
-             onerror="this.style.display='none'">
-      </div>
-      <div class="continue-card__body">
-        <div class="card-meta">
-          <span class="topic-pill">${escapeHtml(candidate.topic)}</span>
-          <span class="level-pill">${escapeHtml(candidate.level)}</span>
-        </div>
-        <h3 class="continue-card__title">${escapeHtml(candidate.title)}</h3>
-        <p class="continue-card__meta">${escapeHtml(candidate.provider)} · ${formatDuration(candidate.duration)}</p>
-        <div class="continue-card__actions">
-          <button class="primary-button" id="continue-resume-btn" type="button">▶ Resume</button>
-          <button class="ghost-button continue-save-btn" type="button" aria-pressed="${isSaved}"
-                  data-video-id="${escapeHtml(candidate.id)}">
-            ${isSaved ? "♥ Saved" : "♡ Save"}
-          </button>
-        </div>
-      </div>
-    </div>`;
+  const carousel = document.createElement("div");
+  carousel.className = "continue-carousel";
+  carousel.setAttribute("role", "list");
+  carousel.setAttribute("aria-label", "Continue learning videos");
 
-  container.querySelector("#continue-resume-btn")?.addEventListener("click", () => openDetail(candidate.id));
-  container.querySelector(".continue-save-btn")?.addEventListener("click", () => {
-    toggleSaved(candidate.id);
-    renderHome();
+  candidates.forEach((video) => {
+    // Simulate a progress % — saved videos get 30%, others 0%
+    const progressPct = state.saved.has(video.id) ? 30 : 0;
+
+    const item = document.createElement("div");
+    item.className = "continue-item";
+    item.setAttribute("role", "listitem");
+    item.setAttribute("tabindex", "0");
+    item.setAttribute("aria-label", `${video.title} — Resume learning`);
+
+    item.innerHTML = `
+      <div class="continue-item__thumb-wrap">
+        <img class="continue-item__thumb"
+             src="${escapeHtml(video.thumbnail || "")}"
+             alt="${escapeHtml(video.title)} thumbnail"
+             width="280" height="157" loading="lazy" decoding="async"
+             onerror="this.style.display='none'">
+        <span class="continue-item__dur" aria-hidden="true">${formatDuration(video.duration)}</span>
+      </div>
+      <div class="continue-item__body">
+        <p class="continue-item__title">${escapeHtml(video.title)}</p>
+        <p class="continue-item__provider">${escapeHtml(video.provider)} · ${video.year}</p>
+        <div class="video-progress-bar" role="progressbar"
+             aria-label="Video progress"
+             aria-valuenow="${progressPct}" aria-valuemin="0" aria-valuemax="100">
+          <div class="video-progress-bar__fill" style="width:${progressPct}%"></div>
+        </div>
+        <button class="continue-item__resume-btn" type="button" data-vid="${escapeHtml(video.id)}" aria-label="Resume ${escapeHtml(video.title)}">
+          ▶ Resume
+        </button>
+      </div>`;
+
+    item.querySelector(".continue-item__resume-btn")?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      openDetail(video.id);
+    });
+    item.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openDetail(video.id); }
+    });
+    item.addEventListener("click", () => openDetail(video.id));
+
+    carousel.appendChild(item);
   });
+
+  container.replaceChildren(carousel);
 }
+
 
 function renderHomeRecommendations() {
   const container = els.recommendRail;
@@ -905,7 +932,6 @@ function renderProgressSnapshot() {
   const minutes = getCatalogVideos()
     .filter((v) => state.completed.has(v.id))
     .reduce((sum, v) => sum + v.duration, 0);
-  const savedCount  = [...state.saved].filter((id) => getVideoById(id)).length;
   const pathsActive = state.paths.length;
 
   container.innerHTML = `
@@ -919,8 +945,8 @@ function renderProgressSnapshot() {
         <span class="progress-tile__label">Minutes learned</span>
       </div>
       <div class="progress-tile">
-        <span class="progress-tile__value">${savedCount}</span>
-        <span class="progress-tile__label">Saved</span>
+        <span class="progress-tile__value">${pathsActive}</span>
+        <span class="progress-tile__label">Active paths</span>
       </div>
       <div class="progress-tile">
         <span class="progress-tile__value">${percent}%</span>
