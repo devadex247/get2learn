@@ -1,269 +1,137 @@
-# 🚀 get2learn
+# 🚀 get2learn — Premium Technical Learning Workspace
 
-> A curated technical learning platform that helps developers, students, and young tech professionals discover, organize, and make progress through high-quality educational video content.
+> A curated, local-first technical learning discovery and organization platform that helps developers, students, and young tech professionals discover, organize, and track high-signal technical video content.
 
-![Status](https://img.shields.io/badge/Status-MVP-green?style=for-the-badge)
+![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen?style=for-the-badge)
 ![Frontend](https://img.shields.io/badge/Frontend-Vanilla%20JS-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
 ![Backend](https://img.shields.io/badge/Backend-FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)
 ![Database](https://img.shields.io/badge/Database-PostgreSQL-336791?style=for-the-badge&logo=postgresql&logoColor=white)
-![Architecture](https://img.shields.io/badge/Architecture-Local--First-blue?style=for-the-badge)
+![Architecture](https://img.shields.io/badge/Architecture-Hybrid%20Local--First%20%2B%20API-blue?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)
 
 ---
 
 ## 📖 What is get2learn?
 
-**get2learn** is a technical learning discovery and organization platform built around a simple problem:
+**get2learn** answers one primary question for developers in under five seconds:
+> **"What should I learn next, and where do I begin?"**
 
-> There is an overwhelming amount of educational content online, but finding the right resource, organizing it, and actually making progress through it is difficult.
+get2learn transforms fragmented educational content into an organized, high-velocity learning experience. It combines a desktop **Navigation Rail** and mobile **Bottom Bar** layout with an adaptive dashboard, structured exploration, personal workspace tabs, and custom learning paths.
 
-get2learn provides a focused environment where learners can:
-
-- Discover curated technical videos
-- Search and filter educational resources
-- Save resources for later
-- Build custom playlists
-- Track learning progress
-- Write private notes
-- React to resources
-- Resume unfinished lessons
-- Receive behavior-based recommendations
-- Submit new learning resources
-- Report broken links
-- Request topics and better resources
-
-The current version is a **frontend-first MVP** built with plain HTML, CSS, and JavaScript.
-
-A FastAPI backend scaffold is also present and provides the foundation for future authentication, persistent storage, APIs, recommendations, and AI-powered learning features.
+Whether operating in pure **Local-First mode** (`localStorage`) or connected to the **FastAPI + PostgreSQL Backend**, learners can discover resources, track progress, create playlists, take private notes, and execute custom learning paths seamlessly.
 
 ---
 
-# 🎯 The Problem
+## ✨ Workspace Architecture & Navigation
 
-Technical learners often rely on a combination of:
-
-- YouTube
-- Blog posts
-- Documentation
-- Courses
-- GitHub repositories
-- Bookmarks
-- Browser history
-- Notes apps
-- Personal spreadsheets
-
-The result is often fragmented learning.
-
-A learner may find a great video today, forget where it was, save dozens of unrelated resources, lose track of what they completed, and struggle to decide what to study next.
-
-**get2learn is designed to turn scattered technical resources into an organized learning experience.**
-
----
-
-# ✨ Current MVP
-
-The current MVP is fully functional as a **browser-based local-first learning application**.
-
-No account is required.
-
-No package installation is required.
-
-No database is required.
-
-User activity is persisted through the browser's `localStorage`.
-
----
-
-# 🎥 Video Directory
-
-The application provides a curated catalogue of technical learning resources.
-
-Each resource can contain:
-
-- Thumbnail
-- Title
-- Topic
-- Difficulty level
-- Duration
-- Description
-- Tags
-- Provider
-- Year
-- Source URL
-
-Video thumbnails are lazy-loaded to reduce initial page weight.
-
-Videos are **not embedded directly into the directory**, which keeps the browsing experience lightweight and fast.
-
----
-
-# 🔍 Search & Discovery
-
-get2learn provides client-side search across multiple resource attributes.
-
-### Search across
-
-- Titles
-- Topics
-- Difficulty levels
-- Providers
-- Descriptions
-- Tags
-- Private notes
-
-### Filters
-
-- Topic
-- Difficulty
-- Duration
-- Saved resources
-- New resources
-- Unfinished resources
-
-### Duration filters
-
-- Any length
-- Under 20 minutes
-- 20–45 minutes
-- 45+ minutes
-
-### Sorting
-
-- Recommended
-- Newest
-- Shortest
-- Most useful
-
-All filtering and search currently happen in memory on the client.
-
----
-
-# 💾 Saved Videos
-
-Learners can save resources directly from video cards.
-
-Saved state:
-
-- Persists after page refresh
-- Can be filtered through `Saved only`
-- Automatically adds the resource to the default **Save for Later** playlist
-
-Users can therefore build a personal queue without needing an account.
-
----
-
-# 📋 Playlist Management
-
-get2learn supports both a default learning queue and custom playlists.
-
-### Default playlist
-
-**Save for Later**
-
-### Custom playlists
-
-Users can create playlists for different learning goals, technologies, or projects.
-
-Playlist functionality includes:
-
-- Create playlists
-- Add videos
-- Remove videos
-- Reorder resources
-- Drag-and-drop ordering
-- Move items up and down
-- Persist playlist state locally
-
-Removing an item from **Save for Later** also removes its saved state.
-
----
-
-# 👍 Learning Reactions
-
-Users can provide lightweight feedback on resources.
-
-Available reactions:
-
-- 👍 Useful
-- 👎 Skip
-
-These interactions influence the recommendation system.
-
-Useful resources receive a higher recommendation score, while skipped resources are deprioritized.
-
-Reaction state persists after refresh.
-
----
-
-# 📊 Learning Progress
-
-get2learn tracks basic learning progress locally.
-
-Users can mark resources as:
-
-- Complete
-- Incomplete
-
-The application provides:
-
-- Completed video count
-- Learning progress percentage
-- Completed learning minutes
-- Unfinished resource filtering
-- Resume-next functionality
-
-### Resume Next
-
-The learner can continue from the next unfinished resource in their active playlist or recommendation list.
-
-This turns the application from a simple bookmark manager into a lightweight learning workflow.
-
----
-
-# 🗂️ Video Detail Drawer
-
-Each resource can be opened in a detailed view.
-
-The drawer displays:
-
-- Thumbnail
-- Title
-- Provider
-- Year
-- Description
-- Duration
-- Difficulty
-- Topic
-
-Available actions include:
-
-- Open source video
-- Save / unsave
-- Mark complete / incomplete
-- Add to active playlist
-- Write private notes
-- Report the resource
-
-The drawer uses the same underlying state as the video cards, so changes remain synchronized throughout the application.
-
----
-
-# 📝 Private Notes
-
-Learners can attach private notes to individual learning resources.
-
-Notes:
-
-- Persist after refresh
-- Are searchable
-- Are associated with individual videos
-- Display a `Note` indicator on resource cards
-
-Example:
+The platform is structured into five core functional views:
 
 ```text
-"Review this section when learning async Python."
+get2learn Workspace
+├── 🏠 Home                     Personalized dashboard (Greeting, Continue strip, Recommendations, Progress metrics)
+├── 🔍 Explore                  Directory discovery & search (Filters by Topic, Level, Duration, Sorts)
+├── ◈ My Learning              Personal workspace (Continue, Saved, Playlists, Completed, Searchable Notes)
+├── ⇢ Learning Paths           Goal-oriented lesson sequences with SVG progress rings
+└── ➕ Add Link                 Ingest modal with automatic YouTube thumbnail detection & validation
+```
 
-"Important explanation of database indexing around 18:30."
+### Layout Responsiveness
+- **Desktop (≥ 1080px)**: Left Navigation Rail (`72px`), compact brand topbar, full-width main content area.
+- **Mobile (< 768px)**: Bottom Navigation Bar with 4 primary targets + Floating Action Button (FAB) for quick link ingestion.
 
-"Try implementing this architecture in a personal project."
+---
+
+## 🚀 Core Features
+
+### 🏠 Home Dashboard
+- **Contextual Welcome Header**: Time-aware greeting ("Good morning", "Good evening") with instant "Resume next lesson" action.
+- **Continue Learning Strip**: Displays in-progress resources for rapid friction-free resumption.
+- **Personalized Recommendations**: Behavior-based scoring rail with explicit "Why?" reasoning tags.
+- **Progress Snapshot**: 4-tile metric cards displaying completed videos, total learning minutes, active paths, and overall completion percentage.
+
+### 🔍 Search & Explore
+- **Multi-Attribute Search**: Real-time debounced query across titles, topics, difficulty, providers, descriptions, tags, and private notes.
+- **Granular Filters**: Filter by Topic, Difficulty Level (Beginner, Intermediate, Advanced), Duration (Under 20m, 20–45m, 45m+), and quick toggles (`Saved only`, `New this year`, `Unfinished only`).
+- **Sorting Modes**: Sort by `Recommended`, `Newest`, `Shortest`, or `Most useful`.
+
+### 🃏 Redesigned Video Cards & Detail Drawer
+- **Adaptive Primary Action**: Contextually changes label based on state (`Start learning` → `Resume` → `Review`).
+- **Card Overflow Menu**: Compact dropdown menu for secondary actions (Add to playlist, Mark useful/skip, Add note, Mark complete, Report link).
+- **Interactive Detail Drawer**: Native `<dialog>` modal with sticky action strip, auto-saving private notes (500ms debounce), state indicators, and storage mode badges.
+
+### ◈ My Learning Workspace
+Structured 5-tab workspace:
+1. **Continue**: Immediate access to active, unfinished resources.
+2. **Saved**: Quick access to all bookmarked videos.
+3. **Playlists**: Custom playlist manager with drag-and-drop ordering and positional controls.
+4. **Completed**: Review completed materials and manage completion history.
+5. **Notes**: Dedicated searchable repository of all personal video annotations.
+
+### ⇢ Learning Paths
+- Create goal-oriented, structured sequences of technical resources.
+- Visual SVG progress ring tracking completed lessons within each path.
+- Up/Down ordering controls and custom path descriptions.
+
+### 🔔 Toast System with Undo Support
+- Lightweight, accessible notification system (`aria-live="polite"`).
+- Non-disruptive feedback for saving, completing, playlist mutations, and note edits.
+- Instant **Undo** action support for destructive or state-reversing operations.
+
+---
+
+## ⚡ Tech Stack & Hybrid Persistence Model
+
+### Frontend
+- **HTML5 & CSS3**: Vanilla CSS with CSS custom properties (design system tokens, dark theme, fluid typography, glassmorphic surfaces).
+- **Vanilla JavaScript**: Zero build tools, fast DOM rendering, local state management.
+- **API Layer ([`api.js`](file:///c:/Users/user/Desktop/Projects/get2learn/api.js))**: Asynchronous Fetch wrapper supporting JWT authorization headers and live status monitoring.
+
+### Backend Microservice ([`backend/`](file:///c:/Users/user/Desktop/Projects/get2learn/backend))
+- **FastAPI**: High-performance Python async REST API framework (`/api/v1`).
+- **SQLModel & SQLAlchemy**: Async database ORM supporting PostgreSQL engine (`asyncpg`).
+- **Security & Authentication**: JWT bearer tokens (`python-jose`) and `bcrypt` password hashing (`passlib`).
+- **Alembic**: Relational database migration management.
+
+---
+
+## 🛠️ Quick Start Guide
+
+### 1. Run Frontend Locally (Local-First Mode)
+Simply serve the root directory using any static web server:
+
+```bash
+# From workspace root
+python -m http.server 5500
+```
+Open [`http://127.0.0.1:5500`](http://127.0.0.1:5500) in your browser. All data will save locally to browser `localStorage`.
+
+### 2. Run Full Stack with FastAPI Backend
+
+#### Backend Setup
+```bash
+cd backend
+
+# Create and activate virtual environment
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1  # Windows PowerShell
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Create environment file
+cp .env.example .env
+
+# Run database migrations and seed data
+alembic upgrade head
+python -m app.db.seed
+
+# Start FastAPI server
+python -m uvicorn app.main:app --reload --port 8000
+```
+> **Backend API Docs**: [`http://127.0.0.1:8000/api/v1/docs`](http://127.0.0.1:8000/api/v1/docs)
+
+---
+
+## 📄 License
+
+Distributed under the MIT License. See [`LICENSE`](file:///c:/Users/user/Desktop/Projects/get2learn/LICENSE) for more details.
