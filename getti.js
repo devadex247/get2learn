@@ -153,6 +153,39 @@ class GettiAssistant {
     );
   }
 
+  async callChatApi(action, body) {
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const endpoints = [];
+
+    if (action === 'message') {
+      endpoints.push('/api/chat');
+      if (isLocal) endpoints.push('http://localhost:8000/api/v1/chat/message');
+    } else if (action === 'validate-url') {
+      endpoints.push('/api/validate-url');
+      if (isLocal) endpoints.push('http://localhost:8000/api/v1/chat/validate-url');
+    }
+
+    let lastError = null;
+    for (const endpoint of endpoints) {
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+
+        if (response.ok) {
+          return await response.json();
+        }
+        const errData = await response.json().catch(() => ({}));
+        lastError = new Error(errData.error || errData.details || `API returned ${response.status}`);
+      } catch (err) {
+        lastError = err;
+      }
+    }
+    throw lastError || new Error('Could not reach AI backend');
+  }
+
   async processResponse(text) {
     const lowerText = text.toLowerCase();
     
@@ -165,22 +198,9 @@ class GettiAssistant {
     }
 
     try {
-      const response = await fetch('http://localhost:8000/api/v1/chat/message', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ message: text })
-      });
-
+      const data = await this.callChatApi('message', { message: text });
       this.removeTypingIndicator();
 
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      
       // We will parse minimal markdown here for formatting (basic bold and newlines)
       let formattedText = data.response
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
@@ -195,7 +215,7 @@ class GettiAssistant {
       if (lowerText.includes('save') || lowerText.includes('watch later')) {
         this.addMessage("To save a video, click the 'Save' button. (Note: AI backend is currently offline)");
       } else {
-        this.addMessage("I'm sorry, I'm having trouble connecting to my AI brain right now. Please ensure the backend is running!");
+        this.addMessage("I'm sorry, I'm having trouble connecting to my AI brain right now. Please ensure your Vercel deployment has GEMINI_API_KEY set or your local backend is running!");
       }
     }
   }
@@ -205,20 +225,9 @@ class GettiAssistant {
     this.addMessage("Analyzing URL...", 'system');
     
     try {
-      const response = await fetch('http://localhost:8000/api/v1/chat/validate-url', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: url })
-      });
-
+      const data = await this.callChatApi('validate-url', { url: url });
       this.removeTypingIndicator();
 
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      
       if (data.is_educational) {
         const cardHTML = `
           <div class="message-bubble" style="background: var(--surface-raised); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--sp-3); width: 280px;">
