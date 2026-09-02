@@ -84,7 +84,7 @@ class GettiAssistant {
     this.sendBtn.disabled = text.length === 0;
   }
 
-  handleSubmit(e) {
+  async handleSubmit(e) {
     e.preventDefault();
     const text = this.input.value.trim();
     if (!text) return;
@@ -96,13 +96,9 @@ class GettiAssistant {
     this.input.value = '';
     this.handleInput();
 
-    // 3. Process response (Local Fallback Mode)
+    // 3. Process response
     this.showTypingIndicator();
-    
-    setTimeout(() => {
-      this.removeTypingIndicator();
-      this.processLocalResponse(text);
-    }, 800);
+    await this.processResponse(text);
   }
 
   addMessage(text, sender = 'system', isCard = false) {
@@ -157,52 +153,103 @@ class GettiAssistant {
     );
   }
 
-  // --- Local Mode Heuristics ---
-
-  processLocalResponse(text) {
+  async processResponse(text) {
     const lowerText = text.toLowerCase();
     
     // Check for URL
     const urlMatch = text.match(/(https?:\/\/[^\s]+)/);
     if (urlMatch) {
-      this.handleURLSubmission(urlMatch[1]);
+      this.removeTypingIndicator();
+      this.validateURL(urlMatch[1]);
       return;
     }
 
-    // Navigation/Help heuristics
-    if (lowerText.includes('save') || lowerText.includes('watch later')) {
-      this.addMessage("To save a video, click the 'Save' button (bookmark icon) on any video card. You can find all your saved videos in the 'My Learning' tab.");
-    } else if (lowerText.includes('progress') || lowerText.includes('completed')) {
-      this.addMessage("Your progress is tracked automatically when you click the 'Done' button on a video. Check the 'My Learning' section to see your stats.");
-    } else if (lowerText.includes('add') || lowerText.includes('new video')) {
-      this.addMessage("You can add a new video by clicking 'Add Link' in the top menu, or simply by pasting a YouTube or Vimeo link right here in our chat!");
-    } else if (lowerText.includes('playlist')) {
-      this.addMessage("Playlists let you organize videos by topic. You can create a new playlist from the 'Playlist' panel in the top navigation bar.");
-    } else {
-      this.addMessage("I am currently in local mode, so I can only help with basic app navigation. Try asking me how to save a video, or paste a video link here to add it to your workspace!");
+    try {
+      const response = await fetch('http://localhost:8000/api/v1/chat/message', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ message: text })
+      });
+
+      this.removeTypingIndicator();
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      // We will parse minimal markdown here for formatting (basic bold and newlines)
+      let formattedText = data.response
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\n/g, '<br>');
+        
+      this.addMessage(formattedText, 'system', true);
+      
+    } catch (error) {
+      console.error('Chat API Error:', error);
+      this.removeTypingIndicator();
+      // Fallback
+      if (lowerText.includes('save') || lowerText.includes('watch later')) {
+        this.addMessage("To save a video, click the 'Save' button. (Note: AI backend is currently offline)");
+      } else {
+        this.addMessage("I'm sorry, I'm having trouble connecting to my AI brain right now. Please ensure the backend is running!");
+      }
     }
   }
 
-  handleURLSubmission(url) {
-    const isYouTube = url.includes('youtube.com') || url.includes('youtu.be');
+  async validateURL(url) {
+    this.showTypingIndicator();
+    this.addMessage("Analyzing URL...", 'system');
     
-    if (isYouTube) {
-      const cardHTML = `
-        <div class="message-bubble" style="background: var(--surface-raised); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--sp-3); width: 280px;">
-          <div style="background: var(--bg); height: 120px; border-radius: 4px; display:flex; align-items:center; justify-content:center; margin-bottom: var(--sp-2);">
-             <span style="color:var(--ink-muted)">Video Preview</span>
+    try {
+      const response = await fetch('http://localhost:8000/api/v1/chat/validate-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: url })
+      });
+
+      this.removeTypingIndicator();
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.is_educational) {
+        const cardHTML = `
+          <div class="message-bubble" style="background: var(--surface-raised); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--sp-3); width: 280px;">
+            <div style="background: var(--bg); height: 120px; border-radius: 4px; display:flex; align-items:center; justify-content:center; margin-bottom: var(--sp-2);">
+               <span style="color:var(--ink-muted)">Video Preview</span>
+            </div>
+            <h4 style="margin: 0 0 var(--sp-1) 0; font-size: 0.875rem; color: var(--ink); line-height: 1.3;">${this.escapeHTML(data.title)}</h4>
+            <p style="margin: 0 0 var(--sp-3) 0; font-size: 0.75rem; color: var(--ink-muted);">${this.escapeHTML(data.topic)} • ${data.duration_minutes} mins • ${this.escapeHTML(data.level)}</p>
+            <p style="margin: 0 0 var(--sp-3) 0; font-size: 0.75rem; color: var(--ink); font-style: italic;">"${this.escapeHTML(data.reason)}"</p>
+            <div style="display: flex; gap: var(--sp-2);">
+              <button class="primary-button" style="flex: 1; padding: 6px; font-size: 0.75rem;" onclick="
+                let saved = JSON.parse(localStorage.getItem('g2l_saved_videos') || '[]');
+                saved.push(${JSON.stringify(url).replace(/"/g, '&quot;')});
+                localStorage.setItem('g2l_saved_videos', JSON.stringify(saved));
+                this.textContent = 'Saved!';
+                this.disabled = true;
+                this.style.background = 'var(--success)';
+              ">Save to Workspace</button>
+            </div>
           </div>
-          <h4 style="margin: 0 0 var(--sp-1) 0; font-size: 0.875rem; color: var(--ink);">Parsed Video Title</h4>
-          <p style="margin: 0 0 var(--sp-3) 0; font-size: 0.75rem; color: var(--ink-muted);">YouTube • 12 mins • Intermediate</p>
-          <div style="display: flex; gap: var(--sp-2);">
-            <button class="primary-button" style="flex: 1; padding: 6px; font-size: 0.75rem;" onclick="alert('Video saved locally!')">Save to Workspace</button>
-          </div>
-        </div>
-      `;
-      this.addMessage("I've analyzed this link! It looks like an educational video. Would you like to save it?", 'system');
-      setTimeout(() => this.addMessage(cardHTML, 'system', true), 300);
-    } else {
-      this.addMessage("This link doesn't look like a standard educational video source to me right now. Are you sure you want to add it?");
+        `;
+        this.addMessage("This looks like a great resource. Here's what I found:", 'system');
+        setTimeout(() => this.addMessage(cardHTML, 'system', true), 300);
+      } else {
+        this.addMessage(`This doesn't seem like an educational video. Reason: ${data.reason}. If you still want to save it, you can use the 'Add Link' button at the top!`);
+      }
+      
+    } catch (error) {
+      console.error('URL Validation API Error:', error);
+      this.removeTypingIndicator();
+      this.addMessage("I'm sorry, I couldn't validate that URL right now. Please try again later.");
     }
   }
 }
