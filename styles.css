@@ -1983,3 +1983,243 @@ textarea::placeholder {
     grid-template-columns: 1fr;
   }
 }
+
+/* ── 19. GETTI AI ASSISTANT ────────────────────────────────── */
+.getti-container {
+  position: fixed;
+  bottom: var(--sp-6);
+  right: var(--sp-6);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  pointer-events: none;
+}
+
+.getti-fab {
+  pointer-events: auto;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: white;
+  border: none;
+  box-shadow: var(--shadow-lg);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  transition: transform var(--dur-base) var(--ease), background var(--dur-base) var(--ease);
+}
+
+.getti-fab:hover {
+  transform: scale(1.05);
+  background: var(--accent-dark);
+}
+
+.getti-panel {
+  pointer-events: auto;
+  position: absolute;
+  bottom: 70px;
+  right: 0;
+  width: 400px;
+  height: 600px;
+  max-height: calc(100vh - 120px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: opacity var(--dur-base) var(--ease), transform var(--dur-base) var(--ease), visibility var(--dur-base);
+  transform-origin: bottom right;
+}
+
+.getti-panel[hidden] {
+  display: flex; 
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(0.95) translateY(20px);
+  pointer-events: none;
+}
+
+.getti-header {
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--surface-raised);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.getti-header-title {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.getti-avatar {
+  font-size: 16px;
+  background: var(--accent-tint);
+  color: var(--accent);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.getti-header-title h2 {
+  font-size: 1rem;
+  margin: 0;
+  line-height: 1.2;
+  color: var(--ink);
+}
+
+.getti-subtitle {
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+  margin: 0;
+}
+
+.getti-header-actions {
+  display: flex;
+  gap: var(--sp-1);
+}
+
+.getti-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  background: var(--bg);
+}
+
+.getti-message {
+  display: flex;
+  flex-direction: column;
+  max-width: 85%;
+  animation: gettiMessageIn 0.3s var(--ease) forwards;
+}
+
+@keyframes gettiMessageIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.getti-message--system {
+  align-self: flex-start;
+}
+
+.getti-message--user {
+  align-self: flex-end;
+}
+
+.message-bubble {
+  padding: var(--sp-3);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.getti-message--system .message-bubble {
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  color: var(--ink);
+  border-bottom-left-radius: 4px;
+}
+
+.getti-message--user .message-bubble {
+  background: var(--accent);
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+
+.getti-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+}
+
+.getti-suggestion-chip {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  padding: 4px 12px;
+  font-size: 0.75rem;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background var(--dur-base) var(--ease), border-color var(--dur-base);
+}
+
+.getti-suggestion-chip:hover {
+  background: var(--surface-hover);
+}
+
+.getti-input-area {
+  padding: var(--sp-3);
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: var(--sp-2);
+  align-items: center;
+}
+
+.getti-input {
+  flex: 1;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  padding: 8px 16px;
+  font-size: 0.875rem;
+  background: var(--bg);
+  color: var(--ink);
+  outline: none;
+  transition: border-color var(--dur-base) var(--ease), box-shadow var(--dur-base) var(--ease);
+}
+
+.getti-input:focus {
+  border-color: var(--accent);
+  box-shadow: var(--accent-glow);
+}
+
+.getti-send-btn {
+  background: var(--accent);
+  color: white;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+}
+
+.getti-send-btn:disabled {
+  background: var(--surface-hover);
+  color: var(--ink-faint);
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .getti-panel {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 85vh;
+    max-height: none;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    transform-origin: bottom center;
+  }
+}

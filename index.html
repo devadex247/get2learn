@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="styles.css">
     <script src="api.js" defer></script>
     <script src="app.js" defer></script>
+    <script src="getti.js" defer></script>
   </head>
   <body>
 
@@ -590,6 +591,50 @@
         </div>
       </article>
     </template>
+
+    <!-- ── Getti AI Assistant ───────────────────────────────── -->
+    <div id="getti-container" class="getti-container" aria-label="Getti AI Assistant">
+      <button id="getti-fab" class="getti-fab" type="button" aria-label="Open Getti Assistant" aria-expanded="false" aria-controls="getti-panel">
+        <span class="getti-fab-icon" aria-hidden="true">✨</span>
+      </button>
+
+      <section id="getti-panel" class="getti-panel" role="dialog" aria-labelledby="getti-title" aria-modal="false" hidden>
+        <header class="getti-header">
+          <div class="getti-header-title">
+            <span class="getti-avatar" aria-hidden="true">✨</span>
+            <div>
+              <h2 id="getti-title">Getti</h2>
+              <p class="getti-subtitle">Your learning assistant</p>
+            </div>
+          </div>
+          <div class="getti-header-actions">
+            <!-- <button id="getti-minimize" class="icon-button" type="button" aria-label="Minimize Getti">_</button> -->
+            <button id="getti-close" class="icon-button" type="button" aria-label="Close Getti">✕</button>
+          </div>
+        </header>
+
+        <div id="getti-messages" class="getti-messages" aria-live="polite">
+          <!-- Messages will be injected here -->
+          <div class="getti-message getti-message--system">
+            <div class="message-bubble">
+              <p>Hi! I'm Getti. How can I help you navigate get2learn or find resources today?</p>
+            </div>
+            <div class="getti-suggestions">
+              <button class="getti-suggestion-chip" type="button">How do I save a video?</button>
+              <button class="getti-suggestion-chip" type="button">Show me my progress</button>
+            </div>
+          </div>
+        </div>
+
+        <form id="getti-input-form" class="getti-input-area">
+          <label for="getti-input" class="visually-hidden" style="display:none;">Ask Getti a question or paste a video URL</label>
+          <input type="text" id="getti-input" class="getti-input" placeholder="Ask a question or paste a URL..." autocomplete="off">
+          <button type="submit" id="getti-send" class="icon-button getti-send-btn" aria-label="Send message" disabled>
+            <span aria-hidden="true">↑</span>
+          </button>
+        </form>
+      </section>
+    </div>
 
   </body>
 </html>
